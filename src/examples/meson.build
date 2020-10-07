@@ -3,6 +3,7 @@ examples_dep = dependency('elementary', required : true)
 source_file = [
     'Arc.cpp',
     'Async.cpp',
+    'BezierLength.cpp',
     'Blending.cpp',
     'Boundary.cpp',
     'Capi.cpp',
