@@ -19,6 +19,7 @@ source_file = [
     'Scene.cpp',
     'SceneTransform.cpp',
     'Shape.cpp',
+    'SmallDashPatterns.cpp',
     'Stacking.cpp',
     'Stress.cpp',
     'Stroke.cpp',
