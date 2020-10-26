@@ -28,6 +28,7 @@ source_file = [
     'Svg.cpp',
     'Transform.cpp',
     'Update.cpp',
+    'UnexpectedGap.cpp',
     'ClipPath.cpp',
 ]
 
