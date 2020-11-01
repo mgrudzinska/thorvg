@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 170 160" >
+  <g transform="translate(50,50)">
+
+    <path d="M  0,0 l 10 -35 3 0 -10 35 z" fill="blue" fill-opacity="0.5" stroke="red" stroke-width="1"/>
+    <path d="M 20,0 l 10 -35 1 0 -10 35 z" fill="blue" fill-opacity="0.5" stroke="red" stroke-width="1"/>
+    <path d="M 40,0 l 10 -35 0 0 -10 35 z" fill="blue" fill-opacity="0.5" stroke="red" stroke-width="1"/>
+
+    <path d="M  0,50 l 10 -35 3 0 -10 35 z" fill="blue" stroke="none"/>
+    <path d="M 20,50 l 10 -35 1 0 -10 35 z" fill="blue" stroke="none"/>
+    <path d="M 40,50 l 10 -35 0 0 -10 35 z" fill="blue" stroke="none"/>
+
+    <path d="M  0,60 l 30 0 -50 50 0 -30 z" fill="blue" stroke="red"/>
+    <path d="M 50,60 l 20,0 15,40 -50,0 z" fill="blue" stroke="red"/>
+
+  </g>
+</svg>
