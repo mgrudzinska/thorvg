@@ -19,6 +19,7 @@ source_file = [
     'Path.cpp',
     'PixelImage.cpp',
     'RadialGradient.cpp',
+    'ScaledShape.cpp',
     'Scene.cpp',
     'SceneTransform.cpp',
     'Shape.cpp',
