@@ -33,6 +33,7 @@ source_file = [
     'ClipPath.cpp',
     'Masking.cpp',
     'InvMasking.cpp',
+    'OptRasterTest.cpp',
 ]
 
 foreach current_file : source_file
