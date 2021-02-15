@@ -44,6 +44,10 @@ struct Picture::Impl
     {
     }
 
+    void serialize()
+    {
+    }
+
     bool dispose(RenderMethod& renderer)
     {
 	bool ret = true;

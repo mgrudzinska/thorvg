@@ -213,6 +213,10 @@ struct Shape::Impl
         if (stroke) delete(stroke);
     }
 
+    void serialize()
+    {
+    }
+
     bool dispose(RenderMethod& renderer)
     {
         auto ret = renderer.dispose(rdata);

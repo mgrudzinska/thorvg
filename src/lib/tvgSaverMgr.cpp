@@ -19,60 +19,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "tvgSceneImpl.h"
+#include "tvgSaverMgr.h"
+#include "tvgTvgSaver.h"
+
+/************************************************************************/
+/* Internal Class Implementation                                        */
+/************************************************************************/
+
 
 /************************************************************************/
 /* External Class Implementation                                        */
 /************************************************************************/
 
-Scene::Scene() : pImpl(new Impl())
+unique_ptr<Saver> SaverMgr::saver(const string& path)
 {
-    Paint::pImpl->method(new PaintMethod<Scene::Impl>(pImpl));
+    auto saver = new TvgSaver();
+    if (saver->open(path)) return unique_ptr<Saver>(saver);
+    else delete(saver);
+
+    return nullptr;
 }
-
-
-Scene::~Scene()
-{
-    delete(pImpl);
-}
-
-
-unique_ptr<Scene> Scene::gen() noexcept
-{
-    return unique_ptr<Scene>(new Scene);
-}
-
-
-Result Scene::push(unique_ptr<Paint> paint) noexcept
-{
-    auto p = paint.release();
-    if (!p) return Result::MemoryCorruption;
-    pImpl->paints.push(p);
-
-    return Result::Success;
-}
-
-
-Result Scene::reserve(uint32_t size) noexcept
-{
-    pImpl->paints.reserve(size);
-
-    return Result::Success;
-}
-
-
-Result Scene::clear() noexcept
-{
-    pImpl->paints.clear();
-
-    return Result::Success;
-}
-
-
-Result Scene::save(const std::string& path) noexcept
-{
-    if (path.empty()) return Result::InvalidArguments;
-
-    return pImpl->save(path);
-}
-

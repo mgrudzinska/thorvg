@@ -19,60 +19,62 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "tvgSceneImpl.h"
+
+#include <fstream>
+#include "tvgTvgSaver.h"
+
+/************************************************************************/
+/* Internal Class Implementation                                        */
+/************************************************************************/
+
 
 /************************************************************************/
 /* External Class Implementation                                        */
 /************************************************************************/
 
-Scene::Scene() : pImpl(new Impl())
+TvgSaver::TvgSaver()
 {
-    Paint::pImpl->method(new PaintMethod<Scene::Impl>(pImpl));
 }
 
 
-Scene::~Scene()
+TvgSaver::~TvgSaver()
 {
-    delete(pImpl);
+    close();
 }
 
 
-unique_ptr<Scene> Scene::gen() noexcept
+void TvgSaver::run(unsigned tid)
 {
-    return unique_ptr<Scene>(new Scene);
 }
 
 
-Result Scene::push(unique_ptr<Paint> paint) noexcept
+bool TvgSaver::headerWriter()
 {
-    auto p = paint.release();
-    if (!p) return Result::MemoryCorruption;
-    pImpl->paints.push(p);
-
-    return Result::Success;
+    return true;
 }
 
 
-Result Scene::reserve(uint32_t size) noexcept
-{
-    pImpl->paints.reserve(size);
 
-    return Result::Success;
+bool TvgSaver::open(const string& path)
+{
+    outFile.open(path, ios::out | ios::trunc | ios::binary);  // trunc - th old content has to be removed
+
+    if (!outFile.is_open())
+    {
+        //LOG: Failed to open file
+        return false;
+    }
+    return headerWriter();
 }
 
 
-Result Scene::clear() noexcept
+bool TvgSaver::write()
 {
-    pImpl->paints.clear();
-
-    return Result::Success;
+    return true;
 }
 
 
-Result Scene::save(const std::string& path) noexcept
+bool TvgSaver::close()
 {
-    if (path.empty()) return Result::InvalidArguments;
-
-    return pImpl->save(path);
+    return true;
 }
-

@@ -39,6 +39,7 @@ namespace tvg
         virtual bool bounds(float* x, float* y, float* w, float* h) const = 0;
         virtual bool bounds(RenderMethod& renderer, uint32_t* x, uint32_t* y, uint32_t* w, uint32_t* h) const = 0;
         virtual Paint* duplicate() = 0;
+        virtual void serialize() = 0;
     };
 
     struct Paint::Impl
@@ -226,6 +227,11 @@ namespace tvg
             cmpMethod = method;
             return true;
         }
+
+        void serialize()
+        {
+            smethod->serialize();
+        }
     };
 
 
@@ -266,6 +272,12 @@ namespace tvg
         {
             return inst->duplicate();
         }
+
+        void serialize() override
+        {
+            inst->serialize();
+        }
+
     };
 }
 

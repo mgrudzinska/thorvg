@@ -23,6 +23,8 @@
 #define _TVG_SCENE_IMPL_H_
 
 #include "tvgPaint.h"
+#include "tvgSaverMgr.h"
+#include "tvgTvgSaver.h" // do castowania...
 
 /************************************************************************/
 /* Internal Class Implementation                                        */
@@ -32,6 +34,29 @@ struct Scene::Impl
 {
     Array<Paint*> paints;
     uint8_t opacity;            //for composition
+
+    unique_ptr<Saver> saver = nullptr;
+
+    void serialize()
+    {
+        for (auto paint = paints.data; paint < (paints.data + paints.count); ++paint) {
+            (*paint)->pImpl->serialize();  // serialize children
+            // test:
+            auto tvgArchiver = static_cast<TvgSaver*>(saver.get())->archiver;
+            tvgArchiver.opacity = opacity;
+        }
+    }
+
+    Result save(const std::string& path)
+    {
+        if (saver) saver->close();
+        saver = SaverMgr::saver(path);
+        if (!saver) return Result::NonSupport;
+
+        serialize();
+
+        return Result::Success;
+    }
 
     bool dispose(RenderMethod& renderer)
     {

@@ -19,60 +19,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "tvgSceneImpl.h"
 
-/************************************************************************/
-/* External Class Implementation                                        */
-/************************************************************************/
+#ifndef _TVG_SAVER_H_
+#define _TVG_SAVER_H_
 
-Scene::Scene() : pImpl(new Impl())
+#include "tvgCommon.h"
+#include "tvgTvgSceneArchiver.h"
+
+namespace tvg
 {
-    Paint::pImpl->method(new PaintMethod<Scene::Impl>(pImpl));
+
+class Saver
+{
+public:
+    TvgSceneArchiver archiver;  // podmienic na bazowe archiwum
+
+    virtual ~Saver() {}
+
+    virtual bool open(const string& path) { /* Not supported */ return false; };
+    virtual bool write() = 0;
+    virtual bool close() = 0;
+};
+
 }
 
-
-Scene::~Scene()
-{
-    delete(pImpl);
-}
-
-
-unique_ptr<Scene> Scene::gen() noexcept
-{
-    return unique_ptr<Scene>(new Scene);
-}
-
-
-Result Scene::push(unique_ptr<Paint> paint) noexcept
-{
-    auto p = paint.release();
-    if (!p) return Result::MemoryCorruption;
-    pImpl->paints.push(p);
-
-    return Result::Success;
-}
-
-
-Result Scene::reserve(uint32_t size) noexcept
-{
-    pImpl->paints.reserve(size);
-
-    return Result::Success;
-}
-
-
-Result Scene::clear() noexcept
-{
-    pImpl->paints.clear();
-
-    return Result::Success;
-}
-
-
-Result Scene::save(const std::string& path) noexcept
-{
-    if (path.empty()) return Result::InvalidArguments;
-
-    return pImpl->save(path);
-}
-
+#endif //_TVG_SAVER_H_
