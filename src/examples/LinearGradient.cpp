@@ -8,63 +8,48 @@ void tvgDrawCmds(tvg::Canvas* canvas)
 {
     if (!canvas) return;
 
-    canvas->reserve(3);                          //reserve 3 shape nodes (optional)
-
-    //Prepare Round Rectangle
-    auto shape1 = tvg::Shape::gen();
-    shape1->appendRect(0, 0, 400, 400, 0, 0);    //x, y, w, h, rx, ry
-
-    //LinearGradient
-    auto fill = tvg::LinearGradient::gen();
-    fill->linear(0, 0, 400, 400);
-
     //Gradient Color Stops
     tvg::Fill::ColorStop colorStops[2];
-    colorStops[0] = {0, 0, 0, 0, 255};
-    colorStops[1] = {1, 255, 255, 255, 255};
+    colorStops[0] = {0, 0, 255, 255, 255};
+    colorStops[1] = {1, 255, 0, 0, 255};
 
-    fill->colorStops(colorStops, 2);
+    tvg::Fill::ColorStop colorStopsRev[2];
+    colorStopsRev[0] = {0, 255, 0, 0, 255};
+    colorStopsRev[1] = {1, 0, 255, 255, 255};
 
-    shape1->fill(move(fill));
+    //Rect
+    auto shape1 = tvg::Shape::gen();
+    shape1->appendRect(0, 0, 400, 400, 0, 0);
+
+    //LinearGradient
+    auto fill1 = tvg::LinearGradient::gen();
+    fill1->linear(0, 0, 400, 400);
+    fill1->colorStops(colorStops, 2);
+    shape1->fill(move(fill1));
     if (canvas->push(move(shape1)) != tvg::Result::Success) return;
 
-    //Prepare Circle
+    //Scaled rect - scaled to be as shape 1 but with rounded corners
     auto shape2 = tvg::Shape::gen();
-    shape2->appendCircle(400, 400, 200, 200);    //cx, cy, radiusW, radiusH
+    shape2->appendRect(0, 0, 10, 10, 4, 4);
+    shape2->scale(40);
 
     //LinearGradient
     auto fill2 = tvg::LinearGradient::gen();
-    fill2->linear(400, 200, 400, 600);
-
-    //Gradient Color Stops
-    tvg::Fill::ColorStop colorStops2[3];
-    colorStops2[0] = {0, 255, 0, 0, 255};
-    colorStops2[1] = {0.5, 255, 255, 0, 255};
-    colorStops2[2] = {1, 255, 255, 255, 255};
-
-    fill2->colorStops(colorStops2, 3);
-
+    fill2->linear(0, 0, 10, 10);
+    fill2->colorStops(colorStops, 2);
     shape2->fill(move(fill2));
     if (canvas->push(move(shape2)) != tvg::Result::Success) return;
 
-
-    //Prepare Ellipse
+    //small rect
     auto shape3 = tvg::Shape::gen();
-    shape3->appendCircle(600, 600, 150, 100);    //cx, cy, radiusW, radiusH
+    shape3->appendRect(0, 0, 200, 200, 0, 0);
+    shape3->rotate(180);
+    shape3->translate(300, 300);
 
     //LinearGradient
     auto fill3 = tvg::LinearGradient::gen();
-    fill3->linear(450, 600, 750, 600);
-
-    //Gradient Color Stops
-    tvg::Fill::ColorStop colorStops3[4];
-    colorStops3[0] = {0, 0, 127, 0, 127};
-    colorStops3[1] = {0.25, 0, 170, 170, 170};
-    colorStops3[2] = {0.5, 200, 0, 200, 200};
-    colorStops3[3] = {1, 255, 255, 255, 255};
-
-    fill3->colorStops(colorStops3, 4);
-
+    fill3->linear(0, 0, 200, 200);
+    fill3->colorStops(colorStopsRev, 2);
     shape3->fill(move(fill3));
     if (canvas->push(move(shape3)) != tvg::Result::Success) return;
 }
@@ -150,7 +135,7 @@ int main(int argc, char **argv)
     }
 
     //Threads Count
-    auto threads = std::thread::hardware_concurrency();
+    auto threads = 0;//std::thread::hardware_concurrency();
 
     //Initialize ThorVG Engine
     if (tvg::Initializer::init(tvgEngine, threads) == tvg::Result::Success) {
