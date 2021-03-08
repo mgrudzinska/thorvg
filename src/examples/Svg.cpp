@@ -5,8 +5,8 @@
 /* Drawing Commands                                                     */
 /************************************************************************/
 
-#define NUM_PER_LINE 5
-#define SIZE 160
+#define NUM_PER_LINE 2
+#define SIZE 400
 
 static int count = 0;
 
@@ -25,8 +25,10 @@ void svgDirCallback(const char* name, const char* path, void* data)
 
     if (picture->load(buf) != tvg::Result::Success) return;
 
-    picture->size(SIZE, SIZE);
+//    picture->size(SIZE-20, SIZE-20);
     picture->translate((count % NUM_PER_LINE) * SIZE, SIZE * (count / NUM_PER_LINE));
+
+   picture->scale(0.7);
 
     pictures.push_back(move(picture));
 
@@ -140,7 +142,7 @@ int main(int argc, char **argv)
     }
 
     //Threads Count
-    auto threads = std::thread::hardware_concurrency();
+    auto threads = 0;//std::thread::hardware_concurrency();
 
     //Initialize ThorVG Engine
     if (tvg::Initializer::init(tvgEngine, threads) == tvg::Result::Success) {

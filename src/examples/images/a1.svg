@@ -1,0 +1,11 @@
+<svg viewBox="0 0 550 240" width="550" height="240">
+    <defs>
+        <rect id="path" x="0" y="0" width="550" height="240" />
+    </defs>
+    <rect fill="#0000FF" x="0" y="0" width="550" height="240" />
+    <mask id="mask" fill="white">
+        <use xlink:href="#path" />
+    </mask>
+    <circle fill="#FF00FF" mask="url(#mask)" cx="450" cy="120" r="150" />
+    <polygon fill="#FF0000" mask="url(#mask)" points="135 26 54 26 53 -50 -3 -50 -3 26 -83 26 -83 80 -3 80 -3 156 53 156 53 80 134 80" />
+</svg>
