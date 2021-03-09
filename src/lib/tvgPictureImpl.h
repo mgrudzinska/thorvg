@@ -38,6 +38,7 @@ struct Picture::Impl
     Picture *picture = nullptr;
     void *rdata = nullptr;              //engine data
     float w = 0, h = 0;
+    float vx = 0, vy = 0, vw = 0, vh = 0; //viewBox elements from loader
     bool resizing = false;
 
     Impl(Picture* p) : picture(p)
@@ -132,11 +133,10 @@ struct Picture::Impl
 
     bool viewbox(float* x, float* y, float* w, float* h) const
     {
-        if (!loader) return false;
-        if (x) *x = loader->vx;
-        if (y) *y = loader->vy;
-        if (w) *w = loader->vw;
-        if (h) *h = loader->vh;
+        if (x) *x = this->vx;
+        if (y) *y = this->vy;
+        if (w) *w = this->vw;
+        if (h) *h = this->vh;
         return true;
     }
 
@@ -169,6 +169,10 @@ struct Picture::Impl
         if (!loader->read()) return Result::Unknown;
         w = loader->w;
         h = loader->h;
+        vx = loader->vx;
+        vy = loader->vy;
+        vw = loader->vw;
+        vh = loader->vh;
         return Result::Success;
     }
 
@@ -180,6 +184,10 @@ struct Picture::Impl
         if (!loader->read()) return Result::Unknown;
         w = loader->w;
         h = loader->h;
+        vx = loader->vx;
+        vy = loader->vy;
+        vw = loader->vw;
+        vh = loader->vh;
         return Result::Success;
     }
 
@@ -188,6 +196,8 @@ struct Picture::Impl
         if (loader) loader->close();
         loader = LoaderMgr::loader(data, w, h, copy);
         if (!loader) return Result::NonSupport;
+        this->w = this->vw = w;
+        this->h = this->vh = h;
         return Result::Success;
     }
 
@@ -195,13 +205,34 @@ struct Picture::Impl
     {
         reload();
 
-        if (!paint) return nullptr;
-        auto ret = Picture::gen();
-        if (!ret) return nullptr;
-        auto dup = ret.get()->pImpl;
-        dup->paint = paint->duplicate();
+        if (paint) {
+            auto ret = Picture::gen();
+            if (!ret) return nullptr;
+            auto dup = ret.get()->pImpl;
 
-        return ret.release();
+            dup->paint = paint->duplicate();
+
+            return ret.release();
+        }
+        else if (pixels) {
+            auto ret = Picture::gen();
+            if (!ret) return nullptr;
+            auto dup = ret.get()->pImpl;
+
+            dup->pixels = static_cast<uint32_t*>(malloc(sizeof(uint32_t) * w * h));
+            if (!dup->pixels) return nullptr;
+            memcpy(dup->pixels, pixels, sizeof(uint32_t) * w * h);
+            dup->w = w;
+            dup->h = h;
+            dup->vx = vx;
+            dup->vy = vy;
+            dup->vw = vw;
+            dup->vh = vh;
+
+            return ret.release();
+        }
+
+        return nullptr;
     }
 };
 
