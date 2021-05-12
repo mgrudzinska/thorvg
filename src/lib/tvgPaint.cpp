@@ -317,3 +317,20 @@ uint8_t Paint::opacity() const noexcept
 {
     return pImpl->opacity;
 }
+
+
+Result Paint::save(const std::string& path) noexcept
+{
+    if (path.empty()) return Result::InvalidArguments;
+    if (!pImpl->save(path, this)) return Result::NonSupport;
+    if (pImpl->saver && !pImpl->saver->write()) return Result::Unknown;
+    return Result::Success; 
+}
+
+//PROBLEM - no very usefull API - needed only in Saver
+void Paint::serialize()
+{
+    auto tvgSaver = static_cast<TvgSaver*>(pImpl->saver.get());
+    auto tmp = pImpl->serialize(tvgSaver);
+}
+

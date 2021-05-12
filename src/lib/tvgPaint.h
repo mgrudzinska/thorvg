@@ -23,7 +23,7 @@
 #define _TVG_PAINT_H_
 
 #include "tvgRender.h"
-
+#include "tvgTvgSaver.h"
 
 namespace tvg
 {
@@ -39,6 +39,7 @@ namespace tvg
         virtual bool bounds(float* x, float* y, float* w, float* h) const = 0;
         virtual RenderRegion bounds(RenderMethod& renderer) const = 0;
         virtual Paint* duplicate() = 0;
+        virtual ByteCounter serialize(TvgSaver* tvgSaver) = 0;
     };
 
     struct Paint::Impl
@@ -50,6 +51,7 @@ namespace tvg
         CompositeMethod cmpMethod = CompositeMethod::None;
         uint8_t opacity = 255;
         PaintType type;
+        unique_ptr<Saver> saver = nullptr;
 
         ~Impl() {
             if (cmpTarget) delete(cmpTarget);
@@ -99,6 +101,27 @@ namespace tvg
             return true;
         }
 
+        bool save(const std::string& path, Paint *paint)
+        {
+            if (saver) saver->close();
+            saver = SaverMgr::saver(path, paint);
+            if (!saver) return false; //Result::NonSupport;
+
+            return true; //Result::Success;
+        }
+
+        ByteCounter serializePaint(TvgSaver* tvgSaver)
+        {
+            printf("%s %s - opacity, transform matrix and composition\n", __FILE__, __func__);
+            return 1;
+        }
+
+        ByteCounter serialize(TvgSaver* tvgSaver)
+        {
+            printf("%s %s \n", __FILE__, __func__);
+            return smethod->serialize(tvgSaver);
+        }
+
         bool rotate(float degree);
         bool scale(float factor);
         bool translate(float x, float y);
@@ -144,6 +167,11 @@ namespace tvg
         Paint* duplicate() override
         {
             return inst->duplicate();
+        }
+
+        ByteCounter serialize(TvgSaver* tvgSaver) override
+        {
+             return inst->serialize(tvgSaver);
         }
     };
 }

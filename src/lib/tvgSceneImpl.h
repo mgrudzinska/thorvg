@@ -33,6 +33,11 @@ struct Scene::Impl
 {
     Array<Paint*> paints;
     uint8_t opacity;            //for composition
+    Scene* scene = nullptr;
+
+    Impl(Scene* s) : scene(s)
+    {
+    }
 
     bool dispose(RenderMethod& renderer)
     {
@@ -158,6 +163,21 @@ struct Scene::Impl
         }
 
         return ret.release();
+    }
+
+    ByteCounter serialize(TvgSaver* tvgSaver)
+    {
+        printf("%s %s - all paints in the scene\n", __FILE__, __func__);
+
+        ByteCounter sceneDataByteCnt = 0;
+
+        for (auto paint = paints.data; paint < (paints.data + paints.count); ++paint) {
+            sceneDataByteCnt += (*paint)->pImpl->serialize(tvgSaver);
+        }
+
+        sceneDataByteCnt += scene->Paint::pImpl->serializePaint(tvgSaver);
+
+        return sceneDataByteCnt;
     }
 };
 

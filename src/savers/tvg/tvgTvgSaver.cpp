@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2021 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2020 Samsung Electronics Co., Ltd. All rights reserved.
 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -19,52 +19,77 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "tvgSceneImpl.h"
+#include <string.h>
+#include <fstream>
+#include "tvgTvgSaver.h"
+#include "tvgTvgHelper.h"
+
+/************************************************************************/
+/* Internal Class Implementation                                        */
+/************************************************************************/
 
 /************************************************************************/
 /* External Class Implementation                                        */
 /************************************************************************/
 
-Scene::Scene() : pImpl(new Impl(this))
+TvgSaver::TvgSaver(Paint* paint) : root(paint)
 {
-    Paint::pImpl->type = PaintType::Scene;
-    Paint::pImpl->method(new PaintMethod<Scene::Impl>(pImpl));
 }
 
 
-Scene::~Scene()
+TvgSaver::~TvgSaver()
 {
-    delete(pImpl);
+    close();
 }
 
 
-unique_ptr<Scene> Scene::gen() noexcept
+bool TvgSaver::open(const string& path)
 {
-    return unique_ptr<Scene>(new Scene);
+    reserved = 256;
+    buffer = static_cast<char*>(malloc(reserved));
+    if (!buffer) {
+        reserved = 0;
+        return false;
+    }
+    return true;
 }
 
 
-Result Scene::push(unique_ptr<Paint> paint) noexcept
+bool TvgSaver::write()
 {
-    auto p = paint.release();
-    if (!p) return Result::MemoryCorruption;
-    pImpl->paints.push(p);
+    if (!buffer) return false;
 
-    return Result::Success;
+    TaskScheduler::request(this);
+
+    return true;
 }
 
 
-Result Scene::reserve(uint32_t size) noexcept
+void TvgSaver::run(unsigned tid)
 {
-    pImpl->paints.reserve(size);
+    root->serialize();  //PROBLEM - in this point I need to start somehow the serialization process
+};
 
-    return Result::Success;
+
+bool TvgSaver::close()
+{
+    this->done();
+
+    if (buffer) free(buffer);
+
+    return true;
 }
 
 
-Result Scene::clear() noexcept
+void TvgSaver::saveMemberIndicator(TvgIndicator ind)
 {
-    pImpl->paints.clear();
+    printf("%s %s \n", __FILE__, __func__);
+    return;
+}
 
-    return Result::Success;
+
+void TvgSaver::saveMemberDataSize(ByteCounter byteCnt)
+{
+    printf("%s %s \n", __FILE__, __func__);
+    return;
 }

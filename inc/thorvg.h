@@ -280,6 +280,10 @@ public:
      */
     uint8_t opacity() const noexcept;
 
+    Result save(const std::string& path) noexcept;
+
+    void serialize(); // PROBLEM - not very usefull api, only for the Saver
+
     _TVG_DECLARE_ACCESSOR();
     _TVG_DECLARE_PRIVATE(Paint);
 };

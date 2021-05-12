@@ -32,7 +32,6 @@ void tvgDrawCmds(tvg::Canvas* canvas)
 
     //Create a Scene
     auto scene = tvg::Scene::gen();
-    scene->reserve(3);   //reserve 3 shape nodes (optional)
 
     //Prepare Round Rectangle
     auto shape1 = tvg::Shape::gen();
@@ -46,56 +45,21 @@ void tvgDrawCmds(tvg::Canvas* canvas)
     shape2->fill(255, 255, 0, 255);              //r, g, b, a
     scene->push(move(shape2));
 
+    //Create another Scene
+    auto scene2 = tvg::Scene::gen();
+
     //Prepare Ellipse
     auto shape3 = tvg::Shape::gen();
     shape3->appendCircle(600, 600, 150, 100);    //cx, cy, radiusW, radiusH
     shape3->fill(0, 255, 255, 255);              //r, g, b, a
-    scene->push(move(shape3));
+    scene2->push(move(shape3));
 
-    //Create another Scene
-    auto scene2 = tvg::Scene::gen();
-    scene2->reserve(2);   //reserve 2 shape nodes (optional)
-
-    //Star
-    auto shape4 = tvg::Shape::gen();
-
-    //Appends Paths
-    shape4->moveTo(199, 34);
-    shape4->lineTo(253, 143);
-    shape4->lineTo(374, 160);
-    shape4->lineTo(287, 244);
-    shape4->lineTo(307, 365);
-    shape4->lineTo(199, 309);
-    shape4->lineTo(97, 365);
-    shape4->lineTo(112, 245);
-    shape4->lineTo(26, 161);
-    shape4->lineTo(146, 143);
-    shape4->close();
-    shape4->fill(0, 0, 255, 255);
-    scene2->push(move(shape4));
-
-    //Circle
-    auto shape5 = tvg::Shape::gen();
-
-    auto cx = 550.0f;
-    auto cy = 550.0f;
-    auto radius = 125.0f;
-    auto halfRadius = radius * 0.552284f;
-
-    //Append Paths
-    shape5->moveTo(cx, cy - radius);
-    shape5->cubicTo(cx + halfRadius, cy - radius, cx + radius, cy - halfRadius, cx + radius, cy);
-    shape5->cubicTo(cx + radius, cy + halfRadius, cx + halfRadius, cy + radius, cx, cy+ radius);
-    shape5->cubicTo(cx - halfRadius, cy + radius, cx - radius, cy + halfRadius, cx - radius, cy);
-    shape5->cubicTo(cx - radius, cy - halfRadius, cx - halfRadius, cy - radius, cx, cy - radius);
-    shape5->fill(255, 0, 0, 255);
-    scene2->push(move(shape5));
-
-    //Push scene2 onto the scene
     scene->push(move(scene2));
 
+    //SAVING
+    scene->save("some_fil.tvg");
+
     //Draw the Scene onto the Canvas
-scene->save("some_fil.tvg");
     canvas->push(move(scene));
 }
 

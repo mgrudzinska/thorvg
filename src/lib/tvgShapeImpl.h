@@ -385,6 +385,93 @@ struct Shape::Impl
 
         return ret.release();
     }
+
+    ByteCounter serializeStroke(TvgSaver* tvgSaver)
+    {
+        printf("%s %s \n", __FILE__, __func__);
+
+/*
+        // in all serialize functions I want to be able to call functions from the Saver
+        // that how the function looks like in a full version of the code
+
+        ByteCounter strokeDataByteCnt = 0;
+        TvgFlag strokeTvgFlag;
+
+        tvgSaver->saveMemberIndicator(TVG_SHAPE_STROKE_INDICATOR);
+        tvgSaver->skipMemberDataSize();
+
+        switch (stroke->cap) {
+            case StrokeCap::Square: {
+                strokeTvgFlag = TVG_SHAPE_STROKE_CAP_SQUARE_FLAG;
+                break;
+            }
+            case StrokeCap::Round: {
+                strokeTvgFlag = TVG_SHAPE_STROKE_CAP_ROUND_FLAG;
+                break;
+            }
+            case StrokeCap::Butt: {
+                strokeTvgFlag = TVG_SHAPE_STROKE_CAP_BUTT_FLAG;
+                break;
+            }
+        }
+        strokeDataByteCnt += tvgSaver->saveMember(TVG_SHAPE_STROKE_CAP_INDICATOR, TVG_FLAG_SIZE, &strokeTvgFlag);
+
+        switch (stroke->join) {
+            case StrokeJoin::Bevel: {
+                strokeTvgFlag = TVG_SHAPE_STROKE_JOIN_BEVEL_FLAG;
+                break;
+            }
+            case StrokeJoin::Round: {
+                strokeTvgFlag = TVG_SHAPE_STROKE_JOIN_ROUND_FLAG;
+                break;
+            }
+            case StrokeJoin::Miter: {
+                strokeTvgFlag = TVG_SHAPE_STROKE_JOIN_MITER_FLAG;
+                break;
+            }
+        }
+        strokeDataByteCnt += tvgSaver->saveMember(TVG_SHAPE_STROKE_JOIN_INDICATOR, TVG_FLAG_SIZE, &strokeTvgFlag);
+
+        strokeDataByteCnt += tvgSaver->saveMember(TVG_SHAPE_STROKE_WIDTH_INDICATOR, sizeof(stroke->width), &stroke->width);
+
+        if (stroke->fill) {
+            strokeDataByteCnt += serializeFill(tvgSaver, stroke->fill, TVG_SHAPE_STROKE_FILL_INDICATOR);
+        }
+
+        strokeDataByteCnt += tvgSaver->saveMember(TVG_SHAPE_STROKE_COLOR_INDICATOR, sizeof(stroke->color), &stroke->color);
+
+        if (stroke->dashPattern && stroke->dashCnt > 0) {
+            ByteCounter dashCntByteCnt = sizeof(stroke->dashCnt);
+            ByteCounter dashPtrnByteCnt = stroke->dashCnt * sizeof(stroke->dashPattern[0]);
+
+            tvgSaver->saveMemberIndicator(TVG_SHAPE_STROKE_DASHPTRN_INDICATOR);
+            tvgSaver->saveMemberDataSize(dashCntByteCnt + dashPtrnByteCnt);
+            strokeDataByteCnt += tvgSaver->saveMemberData(&stroke->dashCnt, dashCntByteCnt);
+            strokeDataByteCnt += tvgSaver->saveMemberData(stroke->dashPattern, dashPtrnByteCnt);
+            strokeDataByteCnt += TVG_INDICATOR_SIZE + BYTE_COUNTER_SIZE;
+        }
+
+        tvgSaver->saveMemberDataSizeAt(strokeDataByteCnt);
+
+        return TVG_INDICATOR_SIZE + BYTE_COUNTER_SIZE + strokeDataByteCnt;
+*/
+
+        return 1;
+    }
+
+    ByteCounter serialize(TvgSaver* tvgSaver)
+    {
+        printf("%s %s - stroke, fill, path, fillrule ...\n", __FILE__, __func__);
+
+        ByteCounter shapeDataByteCnt = 0;
+
+        if (stroke) {
+            shapeDataByteCnt += serializeStroke(tvgSaver);
+        }
+
+        // in the same way: if (fill), if (path.cmds && path.pts)
+        return shapeDataByteCnt;
+    }
 };
 
 #endif //_TVG_SHAPE_IMPL_H_

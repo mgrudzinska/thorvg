@@ -210,6 +210,23 @@ struct Picture::Impl
 
         return ret.release();
     }
+
+    ByteCounter serialize(TvgSaver* tvgSaver)
+    {
+        printf("%s %s \n", __FILE__, __func__);
+        ByteCounter pictureDataByteCnt = 0;
+
+        if (paint) {
+            pictureDataByteCnt += paint->Paint::pImpl->serialize(tvgSaver);
+        }
+        else if (pixels && loader) {
+            // ....
+        }
+
+        pictureDataByteCnt += picture->Paint::pImpl->serializePaint(tvgSaver);
+
+        return pictureDataByteCnt;
+    }
 };
 
 #endif //_TVG_PICTURE_IMPL_H_
