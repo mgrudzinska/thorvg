@@ -23,6 +23,7 @@
 #define _TVG_PAINT_H_
 
 #include "tvgRender.h"
+#include "tvgTvgHelper.h"
 
 
 namespace tvg
@@ -39,6 +40,7 @@ namespace tvg
         virtual bool bounds(float* x, float* y, float* w, float* h) const = 0;
         virtual RenderRegion bounds(RenderMethod& renderer) const = 0;
         virtual Paint* duplicate() = 0;
+        virtual ByteCounter serialize(Saver* saver) = 0;
     };
 
     struct Paint::Impl
@@ -105,6 +107,18 @@ namespace tvg
         void* update(RenderMethod& renderer, const RenderTransform* pTransform, uint32_t opacity, Array<RenderData>& clips, uint32_t pFlag);
         bool render(RenderMethod& renderer);
         Paint* duplicate();
+
+        ByteCounter serializePaint(Saver* saver)
+        {
+            printf("%s %s - opacity, transform matrix, composition\n", __FILE__, __func__);
+            return 1;
+        }
+
+        ByteCounter serialize(Saver* saver)
+        {
+            printf("%s %s \n", __FILE__, __func__);
+            return smethod->serialize(saver);
+        }
     };
 
 
@@ -144,6 +158,11 @@ namespace tvg
         Paint* duplicate() override
         {
             return inst->duplicate();
+        }
+
+        ByteCounter serialize(Saver* saver) override
+        {
+             return inst->serialize(saver);
         }
     };
 }

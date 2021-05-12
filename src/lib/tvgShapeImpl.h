@@ -385,6 +385,30 @@ struct Shape::Impl
 
         return ret.release();
     }
+
+    ByteCounter serializeStroke(Saver* saver)
+    {
+        printf("%s %s \n", __FILE__, __func__);
+        return 1;
+    }
+
+    ByteCounter serialize(Saver* saver)
+    {
+        printf("%s %s \n", __FILE__, __func__);
+        ByteCounter shapeDataByteCnt = 0;
+
+        if (stroke) {
+            shapeDataByteCnt += serializeStroke(saver);
+        }
+
+        // if (fill) {
+        //     shapeDataByteCnt += serializeFill(saver, fill, TVG_SHAPE_FILL_INDICATOR);
+        // }
+
+        shapeDataByteCnt += shape->Paint::pImpl->serializePaint(saver);
+
+        return shapeDataByteCnt;
+    }
 };
 
 #endif //_TVG_SHAPE_IMPL_H_

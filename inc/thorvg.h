@@ -34,7 +34,8 @@ protected: \
 #define _TVG_DECLARE_ACCESSOR() \
     friend Canvas; \
     friend Scene; \
-    friend Picture
+    friend Picture; \
+    friend Saver;
 
 #define _TVG_DECALRE_IDENTIFIER() \
     auto id() const { return _id; } \
@@ -48,6 +49,13 @@ class RenderMethod;
 class Scene;
 class Picture;
 class Canvas;
+class Saver;
+
+// temp solution
+using TvgIndicator = uint8_t;
+using ByteCounter = uint32_t;
+using TvgFlag = uint8_t;
+
 
 /**
  * @defgroup ThorVG
@@ -1259,6 +1267,23 @@ public:
 
     _TVG_DISABLE_CTOR(Initializer);
 };
+
+
+class TVG_EXPORT Saver
+{
+public:
+    ~Saver();
+
+    static Result save(std::unique_ptr<Paint> paint, const std::string& path) noexcept;
+
+    void saveMemberIndicator(TvgIndicator ind);
+    void saveMemberDataSize(ByteCounter byteCnt);
+    // and some other functions that will be needed
+
+    _TVG_DECLARE_PRIVATE(Saver);
+};
+
+
 
 /** @}*/
 
