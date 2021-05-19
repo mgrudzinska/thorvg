@@ -42,7 +42,7 @@ protected: \
 #define _TVG_DECLARE_ACCESSOR() \
     friend Canvas; \
     friend Scene; \
-    friend Picture
+    friend Picture;
 
 #define _TVG_DECALRE_IDENTIFIER() \
     auto id() const { return _id; } \
@@ -56,6 +56,7 @@ class RenderMethod;
 class Scene;
 class Picture;
 class Canvas;
+class Node;
 
 /**
  * @defgroup ThorVG ThorVG
@@ -232,9 +233,20 @@ public:
      * @param[in] m The 3x3 augmented matrix.
      *
      * @return Result::Success when succeed, Result::FailedAllocation otherwise.
-     *
      */
     Result transform(const Matrix& m) noexcept;
+
+    /**
+     * @brief Gets the matrix of the affine transformation for the object.
+     *
+     * @param[out] m The 3x3 augmented matrix.
+     *
+     * @retval Result::Success when succeed.
+     * @retval Result::InvalidArguments If a @c nullptr is passed as the argument.
+     * @retval Result::InsufficientCondition In case no transformation was set.
+     *
+     */
+    Result transform(const Matrix** m) const noexcept;
 
     /**
      * @brief Sets the opacity of the object.
@@ -287,6 +299,13 @@ public:
      * @return The opacity value in the range [0 ~ 255], where 0 is completely transparent and 255 is opaque.
      */
     uint8_t opacity() const noexcept;
+
+    /**
+     * @brief ...
+     *
+     * @return A root node of the tree with all paints pushed into the object.
+     */
+    std::unique_ptr<Node> serialize() const noexcept;
 
     _TVG_DECLARE_ACCESSOR();
     _TVG_DECLARE_PRIVATE(Paint);
@@ -1283,6 +1302,18 @@ public:
 
     _TVG_DISABLE_CTOR(Initializer);
 };
+
+
+class TVG_EXPORT Saver
+{
+public:
+    ~Saver();
+
+    static Result save(std::unique_ptr<Paint> paint, const std::string& path) noexcept;
+
+    _TVG_DECLARE_PRIVATE(Saver);
+};
+
 
 /** @}*/
 

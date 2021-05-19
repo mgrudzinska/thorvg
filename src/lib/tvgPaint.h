@@ -23,7 +23,8 @@
 #define _TVG_PAINT_H_
 
 #include "tvgRender.h"
-
+#include "tvgTvgHelper.h"
+#include "tvgNode.h"
 
 namespace tvg
 {
@@ -39,6 +40,7 @@ namespace tvg
         virtual bool bounds(float* x, float* y, float* w, float* h) const = 0;
         virtual RenderRegion bounds(RenderMethod& renderer) const = 0;
         virtual Paint* duplicate() = 0;
+        virtual Node* serialize(Node* rootNode) = 0;
     };
 
     struct Paint::Impl
@@ -50,6 +52,7 @@ namespace tvg
         CompositeMethod cmpMethod = CompositeMethod::None;
         uint8_t opacity = 255;
         PaintType type;
+
 
         ~Impl() {
             if (cmpTarget) delete(cmpTarget);
@@ -72,6 +75,15 @@ namespace tvg
             flag |= RenderUpdateFlag::Transform;
 
             return true;
+        }
+
+        Matrix* transform()
+        {
+            if (rTransform) {
+                rTransform->update();
+                return &rTransform->m;
+            }
+            return nullptr;
         }
 
         bool bounds(float* x, float* y, float* w, float* h) const
@@ -105,6 +117,18 @@ namespace tvg
         void* update(RenderMethod& renderer, const RenderTransform* pTransform, uint32_t opacity, Array<RenderData>& clips, uint32_t pFlag);
         bool render(RenderMethod& renderer);
         Paint* duplicate();
+
+        Node* serialize(Node* rootNode)
+        {
+            auto root = smethod->serialize(rootNode);
+
+            if (cmpTarget) {
+                root->insert(cmpTarget, PAINT_ID_COMPOSITE, cmpMethod);
+                Node* newRoot = root->getLastChild();
+                cmpTarget->pImpl->serialize(newRoot);
+            }
+            return root;
+        }
     };
 
 
@@ -144,6 +168,11 @@ namespace tvg
         Paint* duplicate() override
         {
             return inst->duplicate();
+        }
+
+        Node* serialize(Node* rootNode) override
+        {
+            return inst->serialize(rootNode);
         }
     };
 }

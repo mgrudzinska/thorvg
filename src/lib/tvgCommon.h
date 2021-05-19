@@ -31,6 +31,12 @@ using namespace tvg;
 #define FILL_ID_LINEAR 0
 #define FILL_ID_RADIAL 1
 
+//MGS - temp solution
+#define PAINT_ID_COMPOSITE 0
+#define PAINT_ID_SHAPE     1
+#define PAINT_ID_SCENE     2
+#define PAINT_ID_PICTURE   3
+
 #define TVG_UNUSED __attribute__ ((__unused__))
 
 #endif //_TVG_COMMON_H_

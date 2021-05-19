@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2021 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2020 Samsung Electronics Co., Ltd. All rights reserved.
 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -19,52 +19,42 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "tvgSceneImpl.h"
+#include "tvgSaverImpl.h"
+#include <iostream>
+
+/************************************************************************/
+/* Internal Class Implementation                                        */
+/************************************************************************/
 
 /************************************************************************/
 /* External Class Implementation                                        */
 /************************************************************************/
 
-Scene::Scene() : pImpl(new Impl(this))
+Saver::Saver() : pImpl(new Impl(this))
 {
-    Paint::pImpl->type = PaintType::Scene;
-    Paint::pImpl->method(new PaintMethod<Scene::Impl>(pImpl));
 }
 
 
-Scene::~Scene()
+Saver::~Saver()
 {
     delete(pImpl);
 }
 
 
-unique_ptr<Scene> Scene::gen() noexcept
+Result Saver::save(std::unique_ptr<Paint> paint, const std::string& path) noexcept
 {
-    return unique_ptr<Scene>(new Scene);
-}
+    if (!paint || path.empty()) return Result::InvalidArguments;
 
+    auto saver = unique_ptr<Saver>(new Saver());
+    if (!saver) return Result::FailedAllocation;
 
-Result Scene::push(unique_ptr<Paint> paint) noexcept
-{
     auto p = paint.release();
     if (!p) return Result::MemoryCorruption;
-    pImpl->paints.push(p);
+    if (saver->pImpl->save(p, path)) {
+        delete p;
+        return Result::Success;
+    }
 
-    return Result::Success;
-}
-
-
-Result Scene::reserve(uint32_t size) noexcept
-{
-    pImpl->paints.reserve(size);
-
-    return Result::Success;
-}
-
-
-Result Scene::clear() noexcept
-{
-    pImpl->paints.clear();
-
-    return Result::Success;
+    delete p;
+    return Result::Unknown;
 }

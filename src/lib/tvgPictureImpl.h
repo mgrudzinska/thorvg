@@ -210,6 +210,18 @@ struct Picture::Impl
 
         return ret.release();
     }
+
+    Node* serialize(Node* rootNode)
+    {
+        reload();
+
+        rootNode->insert(picture, PAINT_ID_PICTURE);
+        Node* newRootNode = rootNode->getLastChild();
+
+        if (paint) paint->pImpl->serialize(newRootNode);
+
+        return newRootNode;
+    }
 };
 
 #endif //_TVG_PICTURE_IMPL_H_

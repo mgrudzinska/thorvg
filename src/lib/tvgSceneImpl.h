@@ -33,6 +33,11 @@ struct Scene::Impl
 {
     Array<Paint*> paints;
     uint8_t opacity;            //for composition
+    Scene* scene = nullptr;
+
+    Impl(Scene* s) : scene(s)
+    {
+    }
 
     bool dispose(RenderMethod& renderer)
     {
@@ -158,6 +163,16 @@ struct Scene::Impl
         }
 
         return ret.release();
+    }
+
+    Node* serialize(Node* rootNode)
+    {
+        rootNode->insert(scene, PAINT_ID_SCENE);
+        Node* newRootNode = rootNode->getLastChild();
+        for (auto paint = paints.data; paint < (paints.data + paints.count); ++paint) {
+            (*paint)->pImpl->serialize(newRootNode);
+        }
+        return newRootNode;
     }
 };
 

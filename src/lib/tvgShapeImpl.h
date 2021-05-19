@@ -385,6 +385,14 @@ struct Shape::Impl
 
         return ret.release();
     }
+
+
+    Node* serialize(Node* rootNode)
+    {
+        rootNode->insert(shape, PAINT_ID_SHAPE);
+        Node* newRootNode = rootNode->getLastChild();
+        return newRootNode;
+    }
 };
 
 #endif //_TVG_SHAPE_IMPL_H_

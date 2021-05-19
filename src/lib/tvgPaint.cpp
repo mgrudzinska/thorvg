@@ -282,6 +282,15 @@ Result Paint::transform(const Matrix& m) noexcept
 }
 
 
+Result Paint::transform(const Matrix** m) const noexcept
+{
+    if (!m) return Result::InvalidArguments;
+    *m = pImpl->transform();
+    if (*m) return Result::Success;
+    return Result::InsufficientCondition;
+}
+
+
 Result Paint::bounds(float* x, float* y, float* w, float* h) const noexcept
 {
     if (pImpl->bounds(x, y, w, h)) return Result::Success;
@@ -316,4 +325,12 @@ Result Paint::opacity(uint8_t o) noexcept
 uint8_t Paint::opacity() const noexcept
 {
     return pImpl->opacity;
+}
+
+
+unique_ptr<Node> Paint::serialize() const noexcept
+{
+    Node* rootNode = new Node();
+    pImpl->serialize(rootNode);
+    return unique_ptr<Node>(rootNode);
 }
