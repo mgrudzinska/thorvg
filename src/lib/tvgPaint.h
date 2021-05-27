@@ -29,14 +29,6 @@ namespace tvg
 {
     enum class PaintType { Shape = 0, Scene, Picture };
 
-    class Paint::Iterator
-    {
-        Paint* address;
-
-        public:
-            Iterator() : address{nullptr} {};
-    };
-
     struct StrategyMethod
     {
         virtual ~StrategyMethod() {}
@@ -115,6 +107,7 @@ namespace tvg
         Paint* duplicate();
     };
 
+    Paint::Iterator::Iterator() : address{nullptr} {};
 
     template<class T>
     struct PaintMethod : StrategyMethod

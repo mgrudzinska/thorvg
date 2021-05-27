@@ -288,7 +288,14 @@ public:
      */
     uint8_t opacity() const noexcept;
 
-    class Iterator;
+    class Iterator
+    {
+        Paint* address;
+
+        public:
+            Iterator();
+    };
+
     Iterator fun() const noexcept;
 
     _TVG_DECLARE_ACCESSOR();
