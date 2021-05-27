@@ -107,6 +107,7 @@ namespace tvg
         Paint* duplicate();
     };
 
+    Paint::Iterator::Iterator() : address{nullptr} {};
 
     template<class T>
     struct PaintMethod : StrategyMethod

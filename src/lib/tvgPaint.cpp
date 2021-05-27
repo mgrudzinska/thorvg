@@ -317,3 +317,9 @@ uint8_t Paint::opacity() const noexcept
 {
     return pImpl->opacity;
 }
+
+
+Paint::Iterator Paint::fun() const noexcept
+{
+    return Paint::Iterator();
+}
