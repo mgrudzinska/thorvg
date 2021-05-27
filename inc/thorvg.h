@@ -288,6 +288,9 @@ public:
      */
     uint8_t opacity() const noexcept;
 
+    class Iterator;
+    Iterator fun() const noexcept;
+
     _TVG_DECLARE_ACCESSOR();
     _TVG_DECLARE_PRIVATE(Paint);
 };

@@ -29,6 +29,14 @@ namespace tvg
 {
     enum class PaintType { Shape = 0, Scene, Picture };
 
+    class Paint::Iterator
+    {
+        Paint* address;
+
+        public:
+            Iterator() : address{nullptr} {};
+    };
+
     struct StrategyMethod
     {
         virtual ~StrategyMethod() {}
