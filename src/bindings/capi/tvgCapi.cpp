@@ -162,6 +162,13 @@ TVG_EXPORT Tvg_Result tvg_paint_transform(Tvg_Paint* paint, const Tvg_Matrix* m)
 }
 
 
+TVG_EXPORT Tvg_Result tvg_paint_get_transform(const Tvg_Paint* paint, const Tvg_Matrix** m)
+{
+    if (!paint) return TVG_RESULT_INVALID_ARGUMENT;
+    return (Tvg_Result) reinterpret_cast<const Paint*>(paint)->transform((reinterpret_cast<const Matrix**>(m)));
+}
+
+
 TVG_EXPORT Tvg_Paint* tvg_paint_duplicate(Tvg_Paint* paint)
 {
     if (!paint) return nullptr;

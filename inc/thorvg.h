@@ -232,9 +232,19 @@ public:
      * @param[in] m The 3x3 augmented matrix.
      *
      * @return Result::Success when succeed, Result::FailedAllocation otherwise.
-     *
      */
     Result transform(const Matrix& m) noexcept;
+
+    /**
+     * @brief Gets the matrix of the affine transformation of the object.
+     *
+     * @param[out] m The 3x3 augmented matrix.
+     *
+     * @retval Result::Success when succeed.
+     * @retval Result::InvalidArguments If a @c nullptr is passed as the argument.
+     * @retval Result::InsufficientCondition In case no transformation was set.
+     */
+    Result transform(const Matrix** m) const noexcept;
 
     /**
      * @brief Sets the opacity of the object.
