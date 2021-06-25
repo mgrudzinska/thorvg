@@ -1,22 +1,27 @@
 examples_dep = dependency('elementary', required : true)
 
 source_file = [
+    'AnimateMasking.cpp',
     'Arc.cpp',
     'Async.cpp',
     'Blending.cpp',
     'Boundary.cpp',
+    'ClipPath.cpp',
     'CustomTransform.cpp',
     'DirectUpdate.cpp',
     'Duplicate.cpp',
     'FillRule.cpp',
+    'GradientMasking.cpp',
     'GradientStroke.cpp',
     'GradientTransform.cpp',
+    'InvMasking.cpp',
     'LinearGradient.cpp',
+    'Masking.cpp',
     'MultiCanvas.cpp',
     'MultiShapes.cpp',
     'Opacity.cpp',
-    'PathCopy.cpp',
     'Path.cpp',
+    'PathCopy.cpp',
     'PicturePng.cpp',
     'PictureRaw.cpp',
     'RadialGradient.cpp',
@@ -32,11 +37,6 @@ source_file = [
     'Transform.cpp',
     'Tvg.cpp',
     'Update.cpp',
-    'ClipPath.cpp',
-    'Masking.cpp',
-    'InvMasking.cpp',
-    'GradientMasking.cpp',
-    'AnimateMasking.cpp',
 ]
 
 foreach current_file : source_file
