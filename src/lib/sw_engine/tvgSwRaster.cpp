@@ -363,7 +363,9 @@ static bool _rasterTranslucentImageRle(SwSurface* surface, SwRleData* rle, uint3
 static bool _rasterImageRle(SwSurface* surface, SwRleData* rle, uint32_t *img, uint32_t w, uint32_t h)
 {
     auto span = rle->spans;
+
 int test = 1;
+
 
     for (uint32_t i = 0; i < rle->size; ++i, ++span) {
         auto dst = &surface->buffer[span->y * surface->stride + span->x];
