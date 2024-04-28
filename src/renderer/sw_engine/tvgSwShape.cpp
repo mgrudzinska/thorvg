@@ -427,12 +427,12 @@ static bool _axisAlignedRect(const SwOutline* outline)
 }
 
 
-static bool _genOutline(SwShape* shape, const RenderShape* rshape, const Matrix* transform, SwMpool* mpool, unsigned tid, bool hasComposite)
+static bool _genOutline(SwShape* shape, const RenderPath* rpath, const Matrix* transform, SwMpool* mpool, unsigned tid, TVG_UNUSED bool hasComposite)
 {
-    const PathCommand* cmds = rshape->path.cmds.data;
-    auto cmdCnt = rshape->path.cmds.count;
-    const Point* pts = rshape->path.pts.data;
-    auto ptsCnt = rshape->path.pts.count;
+    const PathCommand* cmds = rpath->cmds.data;
+    auto cmdCnt = rpath->cmds.count;
+    const Point* pts = rpath->pts.data;
+    auto ptsCnt = rpath->pts.count;
 
     //No actual shape data
     if (cmdCnt == 0 || ptsCnt == 0) return false;
@@ -471,21 +471,24 @@ static bool _genOutline(SwShape* shape, const RenderShape* rshape, const Matrix*
 
     if (!closed) _outlineEnd(*outline);
 
-    outline->fillRule = rshape->rule;
     shape->outline = outline;
-
-    shape->fastTrack = (!hasComposite && _axisAlignedRect(shape->outline));
     return true;
 }
 
 
-/************************************************************************/
-/* External Class Implementation                                        */
-/************************************************************************/
-
-bool shapePrepare(SwShape* shape, const RenderShape* rshape, const Matrix* transform,  const SwBBox& clipRegion, SwBBox& renderRegion, SwMpool* mpool, unsigned tid, bool hasComposite)
+static bool _genOutline(SwShape* shape, const RenderShape* rshape, const Matrix* transform, SwMpool* mpool, unsigned tid, bool hasComposite)
 {
-    if (!_genOutline(shape, rshape, transform, mpool, tid, hasComposite)) return false;
+    if (_genOutline(shape, &rshape->path, transform, mpool, tid, hasComposite)) {
+        shape->outline->fillRule = rshape->rule;
+        shape->fastTrack = (!hasComposite && _axisAlignedRect(shape->outline));
+        return true;
+    }
+    return false;
+}
+
+
+bool _shapePrepare(SwShape* shape, const Matrix* transform,  const SwBBox& clipRegion, SwBBox& renderRegion)
+{
     if (!mathUpdateOutlineBBox(shape->outline, clipRegion, renderRegion, shape->fastTrack)) return false;
 
     //Keep it for Rasterization Region
@@ -502,13 +505,31 @@ bool shapePrepare(SwShape* shape, const RenderShape* rshape, const Matrix* trans
 }
 
 
+/************************************************************************/
+/* External Class Implementation                                        */
+/************************************************************************/
+
+bool shapePrepare(SwShape* shape, const RenderViewport* rvport, const Matrix* transform, const SwBBox& clipRegion, SwBBox& renderRegion, SwMpool* mpool, unsigned tid, bool hasComposite)
+{
+    if (!_genOutline(shape, &rvport->path, transform, mpool, tid, hasComposite)) return false;
+    return _shapePrepare(shape, transform, clipRegion, renderRegion);
+}
+
+
+bool shapePrepare(SwShape* shape, const RenderShape* rshape, const Matrix* transform,  const SwBBox& clipRegion, SwBBox& renderRegion, SwMpool* mpool, unsigned tid, bool hasComposite)
+{
+    if (!_genOutline(shape, rshape, transform, mpool, tid, hasComposite)) return false;
+    return _shapePrepare(shape, transform, clipRegion, renderRegion);
+}
+
+
 bool shapePrepared(const SwShape* shape)
 {
     return shape->rle ? true : false;
 }
 
 
-bool shapeGenRle(SwShape* shape, TVG_UNUSED const RenderShape* rshape, bool antiAlias)
+bool shapeGenRle(SwShape* shape, bool antiAlias)
 {
     //FIXME: Should we draw it?
     //Case: Stroke Line

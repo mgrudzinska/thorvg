@@ -507,8 +507,9 @@ bool mathClipBBox(const SwBBox& clipper, SwBBox& clipee);
 
 void shapeReset(SwShape* shape);
 bool shapePrepare(SwShape* shape, const RenderShape* rshape, const Matrix* transform, const SwBBox& clipRegion, SwBBox& renderRegion, SwMpool* mpool, unsigned tid, bool hasComposite);
+bool shapePrepare(SwShape* shape, const RenderViewport* rvport, const Matrix* transform, const SwBBox& clipRegion, SwBBox& renderRegion, SwMpool* mpool, unsigned tid, bool hasComposite);
 bool shapePrepared(const SwShape* shape);
-bool shapeGenRle(SwShape* shape, const RenderShape* rshape, bool antiAlias);
+bool shapeGenRle(SwShape* shape, bool antiAlias);
 void shapeDelOutline(SwShape* shape, SwMpool* mpool, uint32_t tid);
 void shapeResetStroke(SwShape* shape, const RenderShape* rshape, const Matrix* transform);
 bool shapeGenStrokeRle(SwShape* shape, const RenderShape* rshape, const Matrix* transform, const SwBBox& clipRegion, SwBBox& renderRegion, SwMpool* mpool, unsigned tid);

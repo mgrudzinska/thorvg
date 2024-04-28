@@ -145,6 +145,33 @@ struct RenderTransform
     RenderTransform(const RenderTransform* lhs, const RenderTransform* rhs);
 };
 
+struct RenderPath {
+    Array<PathCommand> cmds;
+    Array<Point> pts;
+};
+
+struct RenderViewport {
+    RenderRegion viewport;
+    RenderPath path;
+
+    RenderViewport(int32_t x, int32_t y, int32_t w, int32_t h) {
+        viewport = {x, y, w, h};
+
+        path.cmds.grow(5);
+        path.cmds.push(PathCommand::MoveTo);
+        path.cmds.push(PathCommand::LineTo);
+        path.cmds.push(PathCommand::LineTo);
+        path.cmds.push(PathCommand::LineTo);
+        path.cmds.push(PathCommand::Close);
+
+        path.pts.grow(4);
+        path.pts.push({(float)x, (float)y});
+        path.pts.push({(float)(x + w), (float)y});
+        path.pts.push({(float)(x + w), (float)(y + h)});
+        path.pts.push({(float)x, (float)(y + h)});
+    }
+};
+
 struct RenderStroke
 {
     float width = 0.0f;
@@ -173,12 +200,7 @@ struct RenderStroke
 
 struct RenderShape
 {
-    struct
-    {
-        Array<PathCommand> cmds;
-        Array<Point> pts;
-    } path;
-
+    RenderPath path;
     Fill *fill = nullptr;
     uint8_t color[4] = {0, 0, 0, 0};    //r, g, b, a
     RenderStroke *stroke = nullptr;
@@ -281,6 +303,7 @@ public:
     virtual RenderData prepare(const RenderShape& rshape, RenderData data, const RenderTransform* transform, Array<RenderData>& clips, uint8_t opacity, RenderUpdateFlag flags, bool clipper) = 0;
     virtual RenderData prepare(const Array<RenderData>& scene, RenderData data, const RenderTransform* transform, Array<RenderData>& clips, uint8_t opacity, RenderUpdateFlag flags) = 0;
     virtual RenderData prepare(Surface* surface, const RenderMesh* mesh, RenderData data, const RenderTransform* transform, Array<RenderData>& clips, uint8_t opacity, RenderUpdateFlag flags) = 0;
+    virtual RenderData prepare(const RenderViewport& rvport, RenderData data, const RenderTransform* transform, Array<RenderData>& clips) = 0;
     virtual bool preRender() = 0;
     virtual bool renderShape(RenderData data) = 0;
     virtual bool renderImage(RenderData data) = 0;

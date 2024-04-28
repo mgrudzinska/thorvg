@@ -74,6 +74,63 @@ struct SwTask : Task
 };
 
 
+struct SwVportTask : SwTask
+{
+    SwShape shape; //TODO: do not use shape?
+    const RenderViewport* rvport = nullptr;
+
+    bool clip(SwRleData* target) override
+    {
+        if (shape.rle) rleClipPath(target, shape.rle);
+        else return false;
+
+        return true;
+    }
+
+    SwRleData* rle() override
+    {
+        return shape.rle;
+    }
+
+    void run(unsigned tid) override
+    {
+        auto clipRegion = bbox;
+
+        //TODO: double check
+        //Shape
+        if ((flags & RenderUpdateFlag::Transform) || !shapePrepared(&shape)) {
+            shapeReset(&shape);
+            shapePrepare(&shape, rvport, transform, clipRegion, bbox, mpool, tid, clips.count > 0 ? true : false);
+        }
+        //Fill
+        if (flags & RenderUpdateFlag::Transform) {
+            if (!shapeGenRle(&shape, true)) goto err;
+            shapeDelFill(&shape);
+        }
+
+        //Clear current task memorypool here if the clippers would use the same memory pool
+        shapeDelOutline(&shape, mpool, tid);
+
+        //Clip Path
+        for (auto clip = clips.begin(); clip < clips.end(); ++clip) {
+            auto clipper = static_cast<SwTask*>(*clip);
+            //Clip shape rle
+            if (shape.rle && !clipper->clip(shape.rle)) goto err;
+        }
+        return;
+
+        err:
+        shapeReset(&shape);
+        shapeDelOutline(&shape, mpool, tid);
+    }
+
+    void dispose() override
+    {
+        shapeFree(&shape);
+    }
+};
+
+
 struct SwShapeTask : SwTask
 {
     SwShape shape;
@@ -150,7 +207,7 @@ struct SwShapeTask : SwTask
         //Fill
         if (flags & (RenderUpdateFlag::Gradient | RenderUpdateFlag::Transform | RenderUpdateFlag::Color)) {
             if (visibleFill || clipper) {
-                if (!shapeGenRle(&shape, rshape, antialiasing(strokeWidth))) goto err;
+                if (!shapeGenRle(&shape, antialiasing(strokeWidth))) goto err;
             }
             if (auto fill = rshape->fill) {
                 auto ctable = (flags & RenderUpdateFlag::Gradient) ? true : false;
@@ -803,6 +860,19 @@ RenderData SwRenderer::prepare(const RenderShape& rshape, RenderData data, const
     task->clipper = clipper;
 
     return prepareCommon(task, transform, clips, opacity, flags);
+}
+
+
+RenderData SwRenderer::prepare(const RenderViewport& rvport, RenderData data, const RenderTransform* transform, Array<RenderData>& clips)
+{
+    //prepare task
+    auto task = static_cast<SwVportTask*>(data);
+    if (!task) {
+        task = new SwVportTask;
+        task->rvport = &rvport;
+    }
+
+    return prepareCommon(task, transform, clips, 255, RenderUpdateFlag::Transform);
 }
 
 

@@ -63,6 +63,7 @@ struct Scene::Impl
     Scene* scene = nullptr;
     uint8_t opacity;                     //for composition
     bool needComp = false;               //composite or not
+    RenderViewport* rvport = nullptr;
 
     Impl(Scene* s) : scene(s)
     {
@@ -77,6 +78,8 @@ struct Scene::Impl
         if (auto renderer = PP(scene)->renderer) {
             renderer->dispose(rd);
         }
+
+        free(rvport);
     }
 
     bool needComposition(uint8_t opacity)
@@ -99,6 +102,11 @@ struct Scene::Impl
         if (paints.size() == 1 && paints.front()->identifier() == TVG_CLASS_ID_SHAPE) return false;
 
         return true;
+    }
+
+    RenderData updateViewport(RenderMethod* renderer, RenderData vrd, const RenderTransform* transform, Array<RenderData>& clips)
+    {
+        return renderer->prepare(*rvport, vrd, transform, clips);;
     }
 
     RenderData update(RenderMethod* renderer, const RenderTransform* transform, Array<RenderData>& clips, uint8_t opacity, RenderUpdateFlag flag, bool clipper)
@@ -210,6 +218,27 @@ struct Scene::Impl
         }
 
         return ret;
+    }
+
+    bool viewport(int32_t x, int32_t y, int32_t w, int32_t h)
+    {
+        if (!rvport) {
+            rvport = static_cast<RenderViewport*>(calloc(1, sizeof(RenderViewport)));
+            if (!rvport) return false;
+        }
+        *rvport = RenderViewport(x, y, w, h);
+        return true;
+    }
+
+    bool viewport(int32_t* x, int32_t* y, int32_t* w, int32_t* h) const noexcept
+    {
+        if (!rvport)  return false;
+
+        if (x) *x = rvport->viewport.x;
+        if (y) *y = rvport->viewport.y;
+        if (w) *w = rvport->viewport.w;
+        if (h) *h = rvport->viewport.h;
+        return true;
     }
 
     void clear(bool free)
