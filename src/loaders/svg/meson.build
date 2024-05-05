@@ -1,3 +1,15 @@
+ttf_dir = ''
+if ttf_loader
+   if host_machine.system() == 'linux'
+      ttf_dir = '/usr/share/fonts/'
+   elif host_machine.system() == 'windows'
+      ttf_dir = 'C:\\\\Windows\\\\Fonts\\\\'
+   elif host_machine.system() == 'darwin'
+      ttf_dir = '/System/Library/Fonts/'
+   endif
+endif
+add_project_arguments('-DTTF_DIR="' + ttf_dir + '"'.format(src_dir), language: 'cpp')
+
 source_file = [
    'tvgSvgCssStyle.h',
    'tvgSvgLoader.h',

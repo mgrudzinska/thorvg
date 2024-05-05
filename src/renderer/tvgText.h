@@ -49,9 +49,9 @@ struct Text::Impl
         delete(paint);
     }
 
-    Result fill(uint8_t r, uint8_t g, uint8_t b)
+    Result fill(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
     {
-        return paint->fill(r, g, b);
+        return paint->fill(r, g, b, a);
     }
 
     Result fill(Fill* f)
@@ -145,7 +145,7 @@ struct Text::Impl
         return PP(paint)->update(renderer, transform, clips, opacity, pFlag, clipper);
     }
 
-    bool bounds(float* x, float* y, float* w, float* h, TVG_UNUSED bool stroking)
+    bool bounds(float* x, float* y, float* w, float* h, TVG_UNUSED bool transformed)
     {
         if (!load() || !paint) return false;
         paint->bounds(x, y, w, h, true);

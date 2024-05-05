@@ -374,6 +374,14 @@ struct SvgCssStyleNode
 {
 };
 
+struct SvgTextNode
+{
+    char* text;
+    float x, y;
+    float fontSize;
+    char* fontFamily;
+};
+
 struct SvgLinearGradient
 {
     float x1;
@@ -517,6 +525,7 @@ struct SvgNode
         SvgClipNode clip;
         SvgCssStyleNode cssStyle;
         SvgSymbolNode symbol;
+        SvgTextNode text;
     } node;
     bool display;
     ~SvgNode();
@@ -560,7 +569,9 @@ struct SvgLoaderData
     int level = 0;
     bool result = false;
     bool style = false;
+    bool text = false;  //TODO: unify with bool style
     SvgNode* currentGraphicsNode = nullptr;
+    Array<char*> fonts;
 };
 
 struct Box

@@ -1477,6 +1477,7 @@ public:
      * @param[in] r The red color channel value in the range [0 ~ 255]. The default value is 0.
      * @param[in] g The green color channel value in the range [0 ~ 255]. The default value is 0.
      * @param[in] b The blue color channel value in the range [0 ~ 255]. The default value is 0.
+     * @param[in] a The alpha channel value in the range [0 ~ 255]. The default value is 255.
      *
      * @retval Result::Success when succeed.
      * @retval Result::InsufficientCondition when the font has not been set up prior to this operation.
@@ -1485,7 +1486,7 @@ public:
      *
      * @note Experimental API
      */
-    Result fill(uint8_t r, uint8_t g, uint8_t b) noexcept;
+    Result fill(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) noexcept;
 
     /**
      * @brief Sets the gradient fill for all of the figures from the text.

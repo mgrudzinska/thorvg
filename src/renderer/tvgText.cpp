@@ -78,11 +78,11 @@ Result Text::unload(const std::string& path) noexcept
 }
 
 
-Result Text::fill(uint8_t r, uint8_t g, uint8_t b) noexcept
+Result Text::fill(uint8_t r, uint8_t g, uint8_t b, uint8_t a) noexcept
 {
     if (!pImpl->paint) return Result::InsufficientCondition;
 
-    return pImpl->fill(r, g, b);
+    return pImpl->fill(r, g, b, a);
 }
 
 
