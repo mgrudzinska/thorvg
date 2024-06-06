@@ -61,6 +61,7 @@ struct Text::Impl
 
     Result text(const char* utf8)
     {
+        printf("MGS text |%s|\n", utf8);
         free(this->utf8);
         if (utf8) this->utf8 = strdup(utf8);
         else this->utf8 = nullptr;

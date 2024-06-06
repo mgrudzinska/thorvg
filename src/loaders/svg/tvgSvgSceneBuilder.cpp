@@ -814,6 +814,144 @@ static unique_ptr<Scene> _useBuildHelper(SvgLoaderData& loaderData, const SvgNod
 }
 
 
+/*
+static const char* _simpleXmlSkipXmlEntities(const char* itr, const char* itrEnd)
+{
+    auto p = itr;
+    while (itr < itrEnd && *itr == '&') {
+        for (int i = 0; i < NUMBER_OF_XML_ENTITIES; ++i) {
+            if (strncmp(itr, xmlEntity[i], xmlEntityLength[i]) == 0) {
+                itr += xmlEntityLength[i];
+                break;
+            }
+        }
+        if (itr == p) break;
+        p = itr;
+    }
+    return itr;
+}
+ */
+
+char* utf32_to_utf8(uint32_t codepoint) {
+    char* utf8 = (char*)malloc(5);  // Dynamiczny bufor dla UTF-8 (do 4 bajtów + null)
+    int length = 0;
+
+    if (codepoint <= 0x7F) {
+        // Sekwencja 1-bajtowa
+        utf8[length++] = static_cast<char>(codepoint);
+    } else if (codepoint <= 0x7FF) {
+        // Sekwencja 2-bajtowa
+        utf8[length++] = static_cast<char>((codepoint >> 6) | 0xC0);
+        utf8[length++] = static_cast<char>((codepoint & 0x3F) | 0x80);
+    } else if (codepoint <= 0xFFFF) {
+        // Sekwencja 3-bajtowa
+        utf8[length++] = static_cast<char>((codepoint >> 12) | 0xE0);
+        utf8[length++] = static_cast<char>(((codepoint >> 6) & 0x3F) | 0x80);
+        utf8[length++] = static_cast<char>((codepoint & 0x3F) | 0x80);
+    } else if (codepoint <= 0x10FFFF) {
+        // Sekwencja 4-bajtowa
+        utf8[length++] = static_cast<char>((codepoint >> 18) | 0xF0);
+        utf8[length++] = static_cast<char>(((codepoint >> 12) & 0x3F) | 0x80);
+        utf8[length++] = static_cast<char>(((codepoint >> 6) & 0x3F) | 0x80);
+        utf8[length++] = static_cast<char>((codepoint & 0x3F) | 0x80);
+    } else {
+        free(utf8);
+        exit(1);
+    }
+
+    utf8[length] = '\0';  // Null-terminate the string
+    return utf8;
+}
+
+uint32_t hex_to_codepoint(const char* hexStr, const char* end) {
+    uint32_t codepoint = 0;
+    while (hexStr < end) {
+        char c = *hexStr++;
+        codepoint <<= 4;
+        printf("MGS CZEMU ZERO !!?? %c   %p %p (%.1s %.1s)\n", c, hexStr, end, hexStr, end);
+        if (c >= '0' && c <= '9') {
+            printf("MGS 1\n");
+            codepoint += c - '0';
+        } else if (c >= 'A' && c <= 'F') {
+            printf("MGS 2\n");
+            codepoint += c - 'A' + 10;
+        } else if (c >= 'a' && c <= 'f') {
+            printf("MGS 3\n");
+            codepoint += c - 'a' + 10;
+        } else {
+            printf("MGS 4\n");
+            // Invalid character for hex input
+            return 0;
+        }
+    }
+    printf("MGS zwracam %d\n", codepoint);
+    return codepoint;
+}
+
+
+static string _convertXml(const char* text)
+{
+    string result;
+    auto size = strlen(text);
+printf("MGS start o dl %zu\n", size);
+
+    while (size > 3) {
+        printf("MGS while size %zu  |%.1s|\n", size, text);
+        if (*text == '&' && *(text + 1) == '#' ) { //podejrzany
+            printf("MGS podejrzany\n");
+            if (*(text + 2) == 'x') {
+                // hex
+                printf("MGS hex\n");
+                if (auto end = strchr(text, ';')) {
+                    printf("MGS mam srednik poz %d  |%.5s|, |%.1s|\n", end - text - 3, text + 3, end);
+                    auto num = hex_to_codepoint(text + 3, end);
+                    printf("MGS num %d \n", num);
+                    if (auto utf8 = utf32_to_utf8((uint32_t)num)) {
+                        printf("MGS mam utf nie null\n");
+                        result += utf8;
+                        size -= end - text;
+                        text = end + 1;
+                        printf("MGS |%.1s| %zu\n", text, size);
+                        free(utf8);
+                    } else {
+                        printf("MGS niestety null\n");
+                        result += *text;
+                        result += *text;
+                        text += 2; //??
+                        size -= 2;
+                    }
+                } else {
+                    printf("MGS nie mam sr, skok o 3\n");
+                    result += *text;
+                    result += *text;
+                    result += *text;
+                    text += 3;
+                    size -= 3;
+                }
+
+            } else {
+                printf("MGS dec !!\n");
+                // dec
+            }
+        } else {
+            printf("MGS problem? |%.1s|\n", text);
+            result += *text;
+            text+=1;
+            --size;
+        }
+    }
+
+    while (*text) {
+        printf("MGS koncowka |%.1s|\n", text);
+        result += *text++;
+    }
+
+    printf("MGS ===================== |%s|\n", result.c_str());
+
+    return result;
+}
+
+
 static unique_ptr<Text> _textBuildHelper(SvgLoaderData& loaderData, const SvgNode* node, const Box& vBox, const string& svgPath)
 {
     auto textNode = &node->node.text;
@@ -830,8 +968,16 @@ static unique_ptr<Text> _textBuildHelper(SvgLoaderData& loaderData, const SvgNod
     const float ptPerPx = 0.75f; //1 pt = 1/72; 1 in = 96 px; -> 72/96 = 0.75
     auto fontSizePt = textNode->fontSize * ptPerPx;
     //TODO: handle default fonts
+    printf("MGS text |%s|\n", textNode->text);
+    auto t = _convertXml(textNode->text);
+
+    printf("MGS new text |%s|\n", t.c_str());
+    printf("\n");
+    for (auto s : t) printf("%c", s);
+    printf("\n");
     if (textNode->fontFamily) text->font(textNode->fontFamily, fontSizePt);
-    text->text(textNode->text);
+    //text->text(textNode->text);
+    text->text(t.c_str());
 
     _applyFillProperty(node->style, text.get(), vBox);
     _applyComposition(loaderData, text.get(), node, vBox, svgPath);
