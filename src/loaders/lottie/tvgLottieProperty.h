@@ -178,6 +178,159 @@ static void _copy(PathSet* pathset, Array<PathCommand>& outCmds)
 }
 
 
+static bool _intersect(const Line& line1, const Line& line2, Point& intersection, bool& inside)
+{
+    constexpr float epsilon = 1e-3f;
+
+    float denom = (line1.pt2.x - line1.pt1.x) * (line2.pt2.y - line2.pt1.y) - (line1.pt2.y - line1.pt1.y) * (line2.pt2.x - line2.pt1.x);
+    if (fabsf(denom) < epsilon) return false;
+
+    float t = ((line2.pt1.x - line1.pt1.x) * (line2.pt2.y - line2.pt1.y) - (line2.pt1.y - line1.pt1.y) * (line2.pt2.x - line2.pt1.x)) / denom;
+    float u = ((line2.pt1.x - line1.pt1.x) * (line1.pt2.y - line1.pt1.y) - (line2.pt1.y - line1.pt1.y) * (line1.pt2.x - line1.pt1.x)) / denom;
+
+    intersection.x = line1.pt1.x + t * (line1.pt2.x - line1.pt1.x);
+    intersection.y = line1.pt1.y + t * (line1.pt2.y - line1.pt1.y);
+    inside = t >= -epsilon && t <= 1.0f + epsilon && u >= -epsilon && u <= 1.0f + epsilon;
+
+    return true;
+}
+
+
+static Point _normal(const Point& p1, const Point& p2)
+{
+    auto direction = p2 - p1;
+    auto directionUnit = direction / length(direction);
+    return {-directionUnit.y, directionUnit.x};
+}
+
+
+static Line _offset(const Point& p1, const Point& p2, float offset)
+{
+    auto scaledNormal = _normal(p1, p2) * offset;
+    return {p1 - scaledNormal, p2 - scaledNormal};
+}
+
+
+static void _lineModifier(const Point* inPts, uint32_t& currentPt, const PathCommand* inCmds, uint32_t inCmdsCnt, uint32_t currentCmd, Line& firstLine, Line& line, bool& moveto, uint32_t movetoIndex, bool degenerated, Array<PathCommand>& cmds, Array<Point>& pts, float offset, StrokeJoin join, float miter)
+{
+    if (tvg::zero(inPts[currentPt - 1] - inPts[currentPt])) {
+        ++currentPt;
+        return;
+    }
+
+    if (inCmds[currentCmd - 1] != PathCommand::LineTo) line = _offset(inPts[currentPt - 1], inPts[currentPt], offset);
+
+    if (moveto) {
+        cmds.push(PathCommand::MoveTo);
+        movetoIndex = pts.count;
+        pts.push(line.pt1);
+        firstLine = line;
+        moveto = false;
+    }
+
+    auto nonDegeneratedCubic = [&](uint32_t cmd, uint32_t pt) {
+        return inCmds[cmd] == PathCommand::CubicTo && !tvg::zero(inPts[pt] - inPts[pt + 1]) && !tvg::zero(inPts[pt + 2] - inPts[pt + 3]);
+    };
+
+    cmds.push(PathCommand::LineTo);
+
+    if (currentCmd + 1 == inCmdsCnt || inCmds[currentCmd + 1] == PathCommand::MoveTo || nonDegeneratedCubic(currentCmd + 1, currentPt + degenerated)) {
+        pts.push(line.pt2);
+        ++currentPt;
+        return;
+    }
+
+    Line nextLine = firstLine;
+    if (inCmds[currentCmd + 1] == PathCommand::LineTo) nextLine = _offset(inPts[currentPt + degenerated], inPts[currentPt + 1 + degenerated], offset);
+    else if (inCmds[currentCmd + 1] == PathCommand::CubicTo) nextLine = _offset(inPts[currentPt + 1 + degenerated], inPts[currentPt + 2 + degenerated], offset);
+
+    bool inside{};
+    Point intersect{};
+    if (_intersect(line, nextLine, intersect, inside)) {
+        if (inside) {
+            if (inCmds[currentCmd + 1] == PathCommand::Close) pts[movetoIndex] = intersect;
+            pts.push(intersect);
+        } else {
+            pts.push(line.pt2);
+            if (join == StrokeJoin::Round) {
+                cmds.push(PathCommand::CubicTo);
+                pts.push((line.pt2 + intersect) * 0.5f);
+                pts.push((nextLine.pt1 + intersect) * 0.5f);
+                pts.push(nextLine.pt1);
+            } else if (join == StrokeJoin::Miter) {
+                auto normal = _normal(line.pt1, line.pt2);
+                auto nextNormal = _normal(nextLine.pt1, nextLine.pt2);
+                auto miterDirection = (normal + nextNormal) / length(normal + nextNormal);
+                cmds.push(PathCommand::LineTo);
+                if (1.0f <= miter * fabsf(miterDirection.x * normal.x + miterDirection.y * normal.y)) pts.push(intersect);
+                else pts.push(nextLine.pt1);
+            } else {
+                cmds.push(PathCommand::LineTo);
+                pts.push(nextLine.pt1);
+            }
+        }
+    } else pts.push(line.pt2);
+
+    line = nextLine;
+    ++currentPt;
+}
+
+
+static bool _modifier(const Point* inPts, uint32_t inPtsCnt, const PathCommand* inCmds, uint32_t inCmdsCnt, Array<PathCommand>& cmds, Array<Point>& pts, float offset, StrokeJoin join, float miter)
+{
+    cmds.reserve(inCmdsCnt * 2);
+    pts.reserve(inPtsCnt * (join == StrokeJoin::Round ? 4 : 2));
+
+    Line line{};
+    Line firstLine{};
+    bool moveto = false;
+    uint32_t movetoIndex = 0;
+
+    for (uint32_t iCmd = 0, iPt = 0; iCmd < inCmdsCnt; ++iCmd) {
+        if (inCmds[iCmd] == PathCommand::MoveTo) {
+            moveto = true;
+            ++iPt;
+        } else if (inCmds[iCmd] == PathCommand::LineTo) {
+            _lineModifier(inPts, iPt, inCmds, inCmdsCnt, iCmd, firstLine, line, moveto, movetoIndex, false, cmds, pts, offset, join, miter);
+        } else if (inCmds[iCmd] == PathCommand::CubicTo) {
+            //cubic degenerated to a line
+            if (tvg::zero(inPts[iPt - 1] - inPts[iPt]) || tvg::zero(inPts[iPt + 1] - inPts[iPt + 2])) {
+                ++iPt;
+                _lineModifier(inPts, iPt, inCmds, inCmdsCnt, iCmd, firstLine, line, moveto, movetoIndex, true, cmds, pts, offset, join, miter);
+                ++iPt;
+                continue;
+            }
+
+            auto line1 = _offset(inPts[iPt - 1], inPts[iPt], offset);
+            auto line2 = _offset(inPts[iPt], inPts[iPt + 1], offset);
+            auto line3 = _offset(inPts[iPt + 1], inPts[iPt + 2], offset);
+
+            if (moveto) {
+                cmds.push(PathCommand::MoveTo);
+                movetoIndex = pts.count;
+                pts.push(line1.pt1);
+                firstLine = line1;
+                moveto = false;
+            }
+
+            bool inside{};
+            Point intersect{};
+            _intersect(line1, line2, intersect, inside);
+            pts.push(intersect);
+            _intersect(line2, line3, intersect, inside);
+            pts.push(intersect);
+            pts.push(line3.pt2);
+            cmds.push(PathCommand::CubicTo);
+
+            iPt += 3;
+        }
+        else cmds.push(PathCommand::Close);
+    }
+
+    return true;
+}
+
+
 static void _roundCorner(Array<PathCommand>& cmds, Array<Point>& pts, const Point& prev, const Point& curr, const Point& next, float roundness)
 {
     auto lenPrev = length(prev - curr);
@@ -482,7 +635,7 @@ struct LottiePathSet : LottieProperty
         return (*frames)[frames->count];
     }
 
-    bool operator()(float frameNo, Array<PathCommand>& cmds, Array<Point>& pts, Matrix* transform, float roundness)
+    bool operator()(float frameNo, Array<PathCommand>& cmds, Array<Point>& pts, Matrix* transform, float roundness, float offset, StrokeJoin join, float miter)
     {
         PathSet* path = nullptr;
         LottieScalarFrame<PathSet>* frame = nullptr;
@@ -507,7 +660,18 @@ struct LottiePathSet : LottieProperty
         }
 
         if (!interpolate) {
-            if (roundness > ROUNDNESS_EPSILON) return _modifier(path->pts, path->ptsCnt, path->cmds, path->cmdsCnt, cmds, pts, transform, roundness);
+            if (roundness > ROUNDNESS_EPSILON) {
+                if (!tvg::zero(offset)) {
+                    Array<PathCommand> cmds1(path->cmdsCnt);
+                    Array<Point> pts1(path->ptsCnt);
+                    _modifier(path->pts, path->ptsCnt, path->cmds, path->cmdsCnt, cmds1, pts1, transform, roundness);
+                    return _modifier(pts1.data, pts1.count, cmds1.data, cmds1.count, cmds, pts, offset, join, miter);
+                }
+                return _modifier(path->pts, path->ptsCnt, path->cmds, path->cmdsCnt, cmds, pts, transform, roundness);
+            }
+            if (!tvg::zero(offset)) {
+                return _modifier(path->pts, path->ptsCnt, path->cmds, path->cmdsCnt, cmds, pts, offset, join, miter);
+            }
             _copy(path, cmds);
             _copy(path, pts, transform);
             return true;
@@ -516,35 +680,45 @@ struct LottiePathSet : LottieProperty
         auto s = frame->value.pts;
         auto e = (frame + 1)->value.pts;
 
-        if (roundness > ROUNDNESS_EPSILON) {
-            auto interpPts = (Point*)malloc(frame->value.ptsCnt * sizeof(Point));
-            auto p = interpPts;
-            for (auto i = 0; i < frame->value.ptsCnt; ++i, ++s, ++e, ++p) {
-                *p = lerp(*s, *e, t);
-                if (transform) *p *= *transform;
-            }
-            _modifier(interpPts, frame->value.ptsCnt, frame->value.cmds, frame->value.cmdsCnt, cmds, pts, nullptr, roundness);
-            free(interpPts);
-            return true;
-        } else {
+        if (roundness <= ROUNDNESS_EPSILON && tvg::zero(offset)) {
             for (auto i = 0; i < frame->value.ptsCnt; ++i, ++s, ++e) {
                 auto pt = lerp(*s, *e, t);
                 if (transform) pt *= *transform;
                 pts.push(pt);
             }
             _copy(&frame->value, cmds);
+            return true;
         }
+
+        auto interpPts = (Point*)malloc(frame->value.ptsCnt * sizeof(Point));
+        auto p = interpPts;
+        for (auto i = 0; i < frame->value.ptsCnt; ++i, ++s, ++e, ++p) {
+            *p = lerp(*s, *e, t);
+            if (transform) *p *= *transform;
+        }
+
+        if (roundness > ROUNDNESS_EPSILON) {
+            if (!tvg::zero(offset)) {
+                Array<PathCommand> cmds1;
+                Array<Point> pts1;
+                _modifier(interpPts, frame->value.ptsCnt, frame->value.cmds, frame->value.cmdsCnt, cmds1, pts1, nullptr, roundness);
+                _modifier(pts1.data, pts1.count, cmds1.data, cmds1.count, cmds, pts, offset, join, miter);
+            } else _modifier(interpPts, frame->value.ptsCnt, frame->value.cmds, frame->value.cmdsCnt, cmds, pts, nullptr, roundness);
+        } else if (!tvg::zero(offset)) {
+            _modifier(interpPts, frame->value.ptsCnt, frame->value.cmds, frame->value.cmdsCnt, cmds, pts, offset, join, miter);
+        }
+        free(interpPts);
         return true;
     }
 
 
-    bool operator()(float frameNo, Array<PathCommand>& cmds, Array<Point>& pts, Matrix* transform, float roundness, LottieExpressions* exps)
+    bool operator()(float frameNo, Array<PathCommand>& cmds, Array<Point>& pts, Matrix* transform, float roundness, float offset, StrokeJoin join, float miter,  LottieExpressions* exps)
     {
         if (exps && exp) {
             if (exp->loop.mode != LottieExpression::LoopMode::None) frameNo = _loop(frames, frameNo, exp);
-            if (exps->result<LottiePathSet>(frameNo, cmds, pts, transform, roundness, exp)) return true;
+            if (exps->result<LottiePathSet>(frameNo, cmds, pts, transform, roundness, offset, join, miter, exp)) return true;
         }
-        return operator()(frameNo, cmds, pts, transform, roundness);
+        return operator()(frameNo, cmds, pts, transform, roundness, offset, join, miter);
     }
 
     void prepare() {}
