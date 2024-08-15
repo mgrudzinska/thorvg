@@ -233,6 +233,18 @@ static inline Point operator/(const Point& lhs, const float rhs)
 }
 
 
+
+static inline Point normal(const Point& p1, const Point& p2)
+{
+    auto dir = p2 - p1;
+    if (auto len = length(dir)) {
+        auto unitDir = dir / len;
+        return {-unitDir.y, unitDir.x};
+    }
+    return {};
+}
+
+
 static inline void log(const Point& pt)
 {
     TVGLOG("COMMON", "Point: [%f %f]", pt.x, pt.y);
