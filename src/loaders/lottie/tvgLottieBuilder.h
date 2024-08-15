@@ -46,6 +46,13 @@ struct RenderRepeater
     bool inorder;
 };
 
+struct RenderOffsetPath
+{
+    float offset;
+    float miterLimit;
+    StrokeJoin join;
+};
+
 struct RenderContext
 {
     INLIST_ITEM(RenderContext);
@@ -55,6 +62,7 @@ struct RenderContext
     LottieObject** begin = nullptr; //iteration entry point
     Array<RenderRepeater> repeaters;
     Matrix* transform = nullptr;
+    RenderOffsetPath* offsetPath = nullptr;
     float roundness = 0.0f;
     bool fragmenting = false;  //render context has been fragmented by filling
     bool reqFragment = false;  //requirement to fragment the render context
@@ -69,6 +77,7 @@ struct RenderContext
     ~RenderContext()
     {
         PP(propagator)->unref();
+        delete(offsetPath);
         free(transform);
     }
 
@@ -79,6 +88,10 @@ struct RenderContext
         this->propagator = propagator;
         this->repeaters = rhs.repeaters;
         this->roundness = rhs.roundness;
+        if (rhs.offsetPath) {
+            offsetPath = new RenderOffsetPath();
+            *offsetPath = *rhs.offsetPath;
+        }
     }
 };
 
@@ -117,6 +130,7 @@ private:
     void updateEllipse(LottieGroup* parent, LottieObject** child, float frameNo, Inlist<RenderContext>& contexts, RenderContext* ctx);
     void updatePath(LottieGroup* parent, LottieObject** child, float frameNo, Inlist<RenderContext>& contexts, RenderContext* ctx);
     void updatePolystar(LottieGroup* parent, LottieObject** child, float frameNo, Inlist<RenderContext>& contexts, RenderContext* ctx);
+    void updateOffsetPath(LottieGroup* parent, LottieObject** child, float frameNo, Inlist<RenderContext>& contexts, RenderContext* ctx);
     void updateTrimpath(LottieGroup* parent, LottieObject** child, float frameNo, Inlist<RenderContext>& contexts, RenderContext* ctx);
     void updateRepeater(LottieGroup* parent, LottieObject** child, float frameNo, Inlist<RenderContext>& contexts, RenderContext* ctx);
     void updateRoundedCorner(LottieGroup* parent, LottieObject** child, float frameNo, Inlist<RenderContext>& contexts, RenderContext* ctx);
