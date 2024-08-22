@@ -25,6 +25,7 @@
 
 #include "tvgCommon.h"
 #include "tvgArray.h"
+#include "tvgMath.h"
 
 
 struct RoundnessModifier
@@ -39,5 +40,35 @@ struct RoundnessModifier
     void append(const Array<PathCommand>& inCmds, const Array<Point>& inPts, Array<PathCommand>& outCmds, Array<Point>& outPts, float outerRoundness, bool hasRoundness) const;
 };
 
+
+struct OffsetPathModifier
+{
+    float offset = 0.0f;
+    float miterLimit = 4.0f;
+    StrokeJoin join = StrokeJoin::Miter;
+
+    OffsetPathModifier(float offset, float miter, StrokeJoin join) : offset(offset), miterLimit(miter), join(join) {};
+
+    OffsetPathModifier(const OffsetPathModifier* off) {
+        *this = *off;
+    }
+
+    void appendPath(const PathCommand* inCmds, uint32_t inCmdsCnt, const Point* inPts, uint32_t inPtsCnt, Array<PathCommand>& outCmds, Array<Point>& outPts, bool clockwise) const;
+    void append(const Array<PathCommand>& inCmds, const Array<Point>& inPts, Array<PathCommand>& outCmds, Array<Point>& outPts, bool clockwise) const;
+
+
+private:
+    struct State
+    {
+        Line line{};
+        Line firstLine{};
+        bool moveto = false;
+        uint32_t movetoOutIndex = 0;
+        uint32_t movetoInIndex = 0;
+    };
+
+    void line(const PathCommand* inCmds, uint32_t inCmdsCnt, const Point* inPts, uint32_t& currentPt, uint32_t currentCmd, State& state, bool degenerated, Array<PathCommand>& cmds, Array<Point>& pts, float offset) const;
+    void corner(const Line& line, const Line& nextLine, uint32_t movetoIndex, bool nextClose, Array<PathCommand>& cmds, Array<Point>& pts) const;
+};
 
 #endif

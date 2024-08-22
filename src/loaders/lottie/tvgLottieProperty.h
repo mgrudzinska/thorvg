@@ -407,7 +407,7 @@ struct LottiePathSet : LottieProperty
         return (*frames)[frames->count];
     }
 
-    bool operator()(float frameNo, Array<PathCommand>& cmds, Array<Point>& pts, Matrix* transform, const RoundnessModifier* roundness)
+    bool operator()(float frameNo, Array<PathCommand>& cmds, Array<Point>& pts, Matrix* transform, const RoundnessModifier* roundness, const OffsetPathModifier* offsetPath)
     {
         PathSet* path = nullptr;
         LottieScalarFrame<PathSet>* frame = nullptr;
@@ -432,46 +432,75 @@ struct LottiePathSet : LottieProperty
         }
 
         if (!interpolate) {
-            if (roundness) roundness->appendPath(path->cmds, path->cmdsCnt, path->pts, path->ptsCnt, cmds, pts, transform);
-            else {
-                _copy(path, cmds);
-                _copy(path, pts, transform);
+            if (roundness) {
+                if (!offsetPath) {
+                    roundness->appendPath(path->cmds, path->cmdsCnt, path->pts, path->ptsCnt, cmds, pts, transform);
+                    return true;
+                }
+                Array<PathCommand> cmds1(path->cmdsCnt);
+                Array<Point> pts1(path->ptsCnt);
+                roundness->appendPath(path->cmds, path->cmdsCnt, path->pts, path->ptsCnt, cmds1, pts1, transform);
+                offsetPath->append(cmds1, pts1, cmds, pts, true);
+                return true;
             }
+            if (offsetPath) {
+                offsetPath->appendPath(path->cmds, path->cmdsCnt, path->pts, path->ptsCnt, cmds, pts, true);
+                return true;
+            }
+            _copy(path, cmds);
+            _copy(path, pts, transform);
             return true;
         }
 
         auto s = frame->value.pts;
         auto e = (frame + 1)->value.pts;
 
-        if (roundness) {
-            auto interpPts = (Point*)malloc(frame->value.ptsCnt * sizeof(Point));
-            auto p = interpPts;
-            for (auto i = 0; i < frame->value.ptsCnt; ++i, ++s, ++e, ++p) {
-                *p = lerp(*s, *e, t);
-                if (transform) *p *= *transform;
-            }
-            roundness->appendPath(frame->value.cmds, frame->value.cmdsCnt, interpPts, frame->value.ptsCnt, cmds, pts, nullptr);
-            free(interpPts);
-            return true;
-        } else {
+        if (!roundness && !offsetPath) {
             for (auto i = 0; i < frame->value.ptsCnt; ++i, ++s, ++e) {
                 auto pt = lerp(*s, *e, t);
                 if (transform) pt *= *transform;
                 pts.push(pt);
             }
             _copy(&frame->value, cmds);
+            return true;
         }
+
+        auto interpPts = (Point*)malloc(frame->value.ptsCnt * sizeof(Point));
+        auto p = interpPts;
+        for (auto i = 0; i < frame->value.ptsCnt; ++i, ++s, ++e, ++p) {
+            *p = lerp(*s, *e, t);
+            if (transform) *p *= *transform;
+        }
+
+        if (roundness) {
+            if (!offsetPath) roundness->appendPath(frame->value.cmds, frame->value.cmdsCnt, interpPts, frame->value.ptsCnt, cmds, pts, nullptr);
+            else {
+                Array<PathCommand> cmds1;
+                Array<Point> pts1;
+                roundness->appendPath(frame->value.cmds, frame->value.cmdsCnt, interpPts, frame->value.ptsCnt, cmds1, pts1, nullptr);
+                offsetPath->append(cmds1, pts1, cmds, pts, true);
+            }
+        } else if (offsetPath) {
+            offsetPath->appendPath(frame->value.cmds, frame->value.cmdsCnt, interpPts, frame->value.ptsCnt, cmds, pts, true);
+        }
+
+        free(interpPts);
+
+        if (roundness) {
+            roundness->appendPath(frame->value.cmds, frame->value.cmdsCnt, interpPts, frame->value.ptsCnt, cmds, pts, nullptr);
+        }
+
         return true;
     }
 
 
-    bool operator()(float frameNo, Array<PathCommand>& cmds, Array<Point>& pts, Matrix* transform, const RoundnessModifier* roundness, LottieExpressions* exps)
+    bool operator()(float frameNo, Array<PathCommand>& cmds, Array<Point>& pts, Matrix* transform, const RoundnessModifier* roundness, const OffsetPathModifier* offsetPath, LottieExpressions* exps)
     {
         if (exps && exp) {
             if (exp->loop.mode != LottieExpression::LoopMode::None) frameNo = _loop(frames, frameNo, exp);
-            if (exps->result<LottiePathSet>(frameNo, cmds, pts, transform, roundness, exp)) return true;
+            if (exps->result<LottiePathSet>(frameNo, cmds, pts, transform, roundness, offsetPath, exp)) return true;
         }
-        return operator()(frameNo, cmds, pts, transform, roundness);
+        return operator()(frameNo, cmds, pts, transform, roundness, offsetPath);
     }
 
     void prepare() {}
