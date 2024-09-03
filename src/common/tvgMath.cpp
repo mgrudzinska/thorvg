@@ -120,9 +120,15 @@ bool inverse(const Matrix* m, Matrix* out)
                m->e12 * (m->e21 * m->e33 - m->e23 * m->e31) +
                m->e13 * (m->e21 * m->e32 - m->e22 * m->e31);
 
-    if (tvg::zero(det)) return false;
+    auto scaled = false;
 
-    auto invDet = 1 / det;
+    if (tvg::zero(det)) {
+        det *= 1e6f;
+        if (tvg::zero(det)) return false;
+        scaled = true;
+    }
+
+    auto invDet = scaled ? 1e6f / det : 1.0f / det;
 
     out->e11 = (m->e22 * m->e33 - m->e32 * m->e23) * invDet;
     out->e12 = (m->e13 * m->e32 - m->e12 * m->e33) * invDet;
