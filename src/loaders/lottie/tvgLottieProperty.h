@@ -303,11 +303,6 @@ struct LottieGenericProperty : LottieProperty
         return frames->last();
     }
 
-    LottieScalarFrame<T>& nextFrame()
-    {
-        return (*frames)[frames->count];
-    }
-
     T operator()(float frameNo)
     {
         if (!frames) return value;
@@ -401,11 +396,6 @@ struct LottiePathSet : LottieProperty
         }
         ++frames->count;
         return frames->last();
-    }
-
-    LottieScalarFrame<PathSet>& nextFrame()
-    {
-        return (*frames)[frames->count];
     }
 
     bool operator()(float frameNo, Array<PathCommand>& cmds, Array<Point>& pts, Matrix* transform, const LottieRoundnessModifier* roundness, const LottieOffsetModifier* offsetPath)
@@ -560,11 +550,6 @@ struct LottieColorStop : LottieProperty
         return frames->last();
     }
 
-    LottieScalarFrame<ColorStop>& nextFrame()
-    {
-        return (*frames)[frames->count];
-    }
-
     Result operator()(float frameNo, Fill* fill, LottieExpressions* exps)
     {
         if (exps && exp) {
@@ -680,11 +665,6 @@ struct LottiePosition : LottieProperty
         return frames->last();
     }
 
-    LottieVectorFrame<Point>& nextFrame()
-    {
-        return (*frames)[frames->count];
-    }
-
     Point operator()(float frameNo)
     {
         if (!frames) return value;
@@ -791,11 +771,6 @@ struct LottieTextDoc : LottieProperty
         }
         ++frames->count;
         return frames->last();
-    }
-
-    LottieScalarFrame<TextDocument>& nextFrame()
-    {
-        return (*frames)[frames->count];
     }
 
     TextDocument& operator()(float frameNo)

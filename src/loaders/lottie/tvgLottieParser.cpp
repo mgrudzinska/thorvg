@@ -419,11 +419,6 @@ void LottieParser::parseKeyFrame(T& prop)
             frame.no = getFloat();
         } else if (KEY_AS("s")) {
             getValue(frame.value);
-        } else if (KEY_AS("e")) {
-            //current end frame and the next start frame is duplicated,
-            //We propagate the end value to the next frame to avoid having duplicated values.
-            auto& frame2 = prop.nextFrame();
-            getValue(frame2.value);
         } else if (parseTangent(key, frame)) {
             continue;
         } else if (KEY_AS("h")) {
