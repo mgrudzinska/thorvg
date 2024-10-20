@@ -1088,6 +1088,17 @@ static void _handleMaskAttr(TVG_UNUSED SvgLoaderData* loader, SvgNode* node, con
 }
 
 
+static void _handleFilterAttr(TVG_UNUSED SvgLoaderData* loader, SvgNode* node, const char* value)
+{
+    SvgStyleProperty* style = node->style;
+    int len = strlen(value);
+    if (len >= 3 && !strncmp(value, "url", 3)) {
+        if (style->filter.url) free(style->filter.url);
+        style->filter.url = _idFromUrl((const char*)(value + 3));
+    }
+}
+
+
 static void _handleMaskTypeAttr(TVG_UNUSED SvgLoaderData* loader, SvgNode* node, const char* value)
 {
     node->node.mask.type = _toMaskType(value);
@@ -1166,7 +1177,8 @@ static constexpr struct
     STYLE_DEF(mask, Mask, SvgStyleFlags::Mask),
     STYLE_DEF(mask-type, MaskType, SvgStyleFlags::MaskType),
     STYLE_DEF(display, Display, SvgStyleFlags::Display),
-    STYLE_DEF(paint-order, PaintOrder, SvgStyleFlags::PaintOrder)
+    STYLE_DEF(paint-order, PaintOrder, SvgStyleFlags::PaintOrder),
+    STYLE_DEF(filter, Filter, SvgStyleFlags::Filter)
 };
 
 
@@ -1240,6 +1252,8 @@ static bool _attrParseGNode(void* data, const char* key, const char* value)
         _handleClipPathAttr(loader, node, value);
     } else if (!strcmp(key, "mask")) {
         _handleMaskAttr(loader, node, value);
+    } else if (!strcmp(key, "filter")) {
+        _handleFilterAttr(loader, node, value);
     } else {
         return _parseStyleAttr(loader, key, value, false);
     }
@@ -1339,6 +1353,125 @@ static bool _attrParseSymbolNode(void* data, const char* key, const char* value)
         return _attrParseGNode(data, key, value);
     }
 
+    return true;
+}
+
+
+template<typename NodeType>
+struct FilterTag
+{
+    const char* tag;
+    SvgParserLengthType type;
+    int sz;
+    size_t offset;
+
+    constexpr FilterTag(const char* tag, SvgParserLengthType type, int size, size_t off)
+        : tag(tag), type(type), sz(size), offset(off) {}
+};
+
+
+template<typename NodeType>
+constexpr FilterTag<NodeType> filterTags[] = {
+    {"x", SvgParserLengthType::Horizontal, sizeof("x"), offsetof(NodeType, x)},
+    {"y", SvgParserLengthType::Vertical, sizeof("y"), offsetof(NodeType, y)},
+    {"width", SvgParserLengthType::Horizontal, sizeof("width"), offsetof(NodeType, width)},
+    {"height", SvgParserLengthType::Vertical, sizeof("height"), offsetof(NodeType, height)}
+};
+
+
+#define PARSE_FILTER_REGION(key, value, loader, NodeType, node) { \
+    unsigned char* array = (unsigned char*)(node); \
+    int sz = strlen(key); \
+    for (unsigned int i = 0; i < sizeof(filterTags<NodeType>) / sizeof(filterTags<NodeType>[0]); i++) { \
+        if (filterTags<NodeType>[i].sz - 1 == sz && !strncmp(filterTags<NodeType>[i].tag, key, sz)) { \
+            *((float*)(array + filterTags<NodeType>[i].offset)) = _toFloat((loader)->svgParse, value, filterTags<NodeType>[i].type); \
+            return true; \
+        } \
+    } \
+}
+
+static bool _attrParseFilterNode(void* data, const char* key, const char* value)
+{
+    SvgLoaderData* loader = (SvgLoaderData*)data;
+    SvgNode* node = loader->svgParse->node;
+    SvgFilterNode* filter = &(node->node.filter);
+
+    PARSE_FILTER_REGION(key, value, loader, SvgFilterNode, filter);
+
+    if (!strcmp(key, "id")) {
+        if (node->id && value) free(node->id);
+        node->id = _copyId(value);
+    } else if (!strcmp(key, "filterUnits")) {
+        if (!strcmp(value, "userSpaceOnUse")) filter->userSpaceFilter = true;
+    } else if (!strcmp(key, "primitiveUnits")) {
+        if (!strcmp(value, "objectBoundingBox")) filter->userSpaceFilter = false;
+    }
+    return true;
+}
+
+
+static constexpr struct
+{
+    GaussianBlurEdgeMode edgeMode;
+    int sz;
+    const char* tag;
+} edgeModeTags[] = {
+    { GaussianBlurEdgeMode::None, sizeof("None"), "None" },
+    { GaussianBlurEdgeMode::Duplicate, sizeof("Duplicate"), "Duplicate" },
+    { GaussianBlurEdgeMode::Wrap, sizeof("Wrap"), "Wrap" },
+    { GaussianBlurEdgeMode::Mirror, sizeof("Mirror"), "Mirror" }
+};
+
+
+static void _parseGaussianBlurEdgeMode(const char** content, GaussianBlurEdgeMode* edgeMode)
+{
+    for (unsigned int i = 0; i < sizeof(edgeModeTags) / sizeof(edgeModeTags[0]); i++) {
+        if (!strncmp(*content, edgeModeTags[i].tag, edgeModeTags[i].sz)) {
+            *edgeMode = edgeModeTags[i].edgeMode;
+            return;
+        }
+    }
+}
+
+
+static void _parseGaussianBlurStdDeviation(const char** content, float* x, float* y)
+{
+    auto str = *content;
+    char* end = nullptr;
+    float deviation[2] = {0, 0};
+    int n = 0;
+
+    while (*str && n < 2) {
+        str = _skipComma(str);
+        auto parsedValue = strToFloat(str, &end);
+        if (parsedValue < 0.0f) break;
+        deviation[n++] = parsedValue;
+        str = end;
+    }
+
+    *x = deviation[0];
+    *y = n == 1 ? deviation[0] : deviation[1];
+}
+
+
+static bool _attrParseGaussianBlurNode(void* data, const char* key, const char* value)
+{
+    SvgLoaderData* loader = (SvgLoaderData*)data;
+    SvgNode* node = loader->svgParse->node;
+    SvgGaussianBlurNode* gaussianBlur = &(node->node.gaussianBlur);
+
+    PARSE_FILTER_REGION(key, value, loader, SvgGaussianBlurNode, gaussianBlur);
+
+    if (!strcmp(key, "id")) {
+        if (node->id && value) free(node->id);
+        node->id = _copyId(value);
+    } else if (!strcmp(key, "stdDeviation")) {
+        _parseGaussianBlurStdDeviation(&value, &gaussianBlur->stdDevX, &gaussianBlur->stdDevY);
+    } else if (!strcmp(key, "edgeMode")) {
+        _parseGaussianBlurEdgeMode(&value, &gaussianBlur->edgeMode);
+    } else {
+        return _parseStyleAttr(loader, key, value, false);
+    }
     return true;
 }
 
@@ -1504,6 +1637,43 @@ static SvgNode* _createSymbolNode(SvgLoaderData* loader, SvgNode* parent, const 
 }
 
 
+static SvgNode* _createGaussianBlurNode(SvgLoaderData* loader, SvgNode* parent, const char* buf, unsigned bufLength, parseAttributes func)
+{
+    loader->svgParse->node = _createNode(parent, SvgNodeType::GaussianBlur);
+    if (!loader->svgParse->node) return nullptr;
+
+    loader->svgParse->node->style->display = false;
+
+    loader->svgParse->node->node.gaussianBlur.stdDevX = 0.0f;
+    loader->svgParse->node->node.gaussianBlur.stdDevY = 0.0f;
+    loader->svgParse->node->node.gaussianBlur.edgeMode = GaussianBlurEdgeMode::None;
+
+    func(buf, bufLength, _attrParseGaussianBlurNode, loader);
+
+    return loader->svgParse->node;
+}
+
+
+static SvgNode* _createFilterNode(SvgLoaderData* loader, SvgNode* parent, const char* buf, unsigned bufLength, parseAttributes func)
+{
+    loader->svgParse->node = _createNode(parent, SvgNodeType::Filter);
+    if (!loader->svgParse->node) return nullptr;
+
+    loader->svgParse->node->style->display = false;
+
+    loader->svgParse->node->node.filter.x = -0.1f;
+    loader->svgParse->node->node.filter.y = -0.1f;
+    loader->svgParse->node->node.filter.width = 1.2f;
+    loader->svgParse->node->node.filter.height = 1.2f;
+    loader->svgParse->node->node.filter.userSpaceFilter = false;
+    loader->svgParse->node->node.filter.userSpacePrimitive = true;
+
+    func(buf, bufLength, _attrParseFilterNode, loader);
+
+    return loader->svgParse->node;
+}
+
+
 static bool _attrParsePathNode(void* data, const char* key, const char* value)
 {
     SvgLoaderData* loader = (SvgLoaderData*)data;
@@ -1520,6 +1690,8 @@ static bool _attrParsePathNode(void* data, const char* key, const char* value)
         _handleClipPathAttr(loader, node, value);
     } else if (!strcmp(key, "mask")) {
         _handleMaskAttr(loader, node, value);
+    } else if (!strcmp(key, "filter")) {
+        _handleFilterAttr(loader, node, value);
     } else if (!strcmp(key, "id")) {
         if (value) free(node->id);
         node->id = _copyId(value);
@@ -1582,6 +1754,8 @@ static bool _attrParseCircleNode(void* data, const char* key, const char* value)
         _handleClipPathAttr(loader, node, value);
     } else if (!strcmp(key, "mask")) {
         _handleMaskAttr(loader, node, value);
+    } else if (!strcmp(key, "filter")) {
+        _handleFilterAttr(loader, node, value);
     } else if (!strcmp(key, "id")) {
         if (value) free(node->id);
         node->id = _copyId(value);
@@ -1649,6 +1823,8 @@ static bool _attrParseEllipseNode(void* data, const char* key, const char* value
         _handleClipPathAttr(loader, node, value);
     } else if (!strcmp(key, "mask")) {
         _handleMaskAttr(loader, node, value);
+    } else if (!strcmp(key, "filter")) {
+        _handleFilterAttr(loader, node, value);
     } else {
         return _parseStyleAttr(loader, key, value, false);
     }
@@ -1698,6 +1874,8 @@ static bool _attrParsePolygonNode(void* data, const char* key, const char* value
         _handleClipPathAttr(loader, node, value);
     } else if (!strcmp(key, "mask")) {
         _handleMaskAttr(loader, node, value);
+    } else if (!strcmp(key, "filter")) {
+        _handleFilterAttr(loader, node, value);
     } else if (!strcmp(key, "id")) {
         if (value) free(node->id);
         node->id = _copyId(value);
@@ -1785,6 +1963,8 @@ static bool _attrParseRectNode(void* data, const char* key, const char* value)
         _handleClipPathAttr(loader, node, value);
     } else if (!strcmp(key, "mask")) {
         _handleMaskAttr(loader, node, value);
+    } else if (!strcmp(key, "filter")) {
+        _handleFilterAttr(loader, node, value);
     } else {
         ret = _parseStyleAttr(loader, key, value, false);
     }
@@ -1850,6 +2030,8 @@ static bool _attrParseLineNode(void* data, const char* key, const char* value)
         _handleClipPathAttr(loader, node, value);
     } else if (!strcmp(key, "mask")) {
         _handleMaskAttr(loader, node, value);
+    } else if (!strcmp(key, "filter")) {
+        _handleFilterAttr(loader, node, value);
     } else {
         return _parseStyleAttr(loader, key, value, false);
     }
@@ -1923,6 +2105,8 @@ static bool _attrParseImageNode(void* data, const char* key, const char* value)
         _handleClipPathAttr(loader, node, value);
     } else if (!strcmp(key, "mask")) {
         _handleMaskAttr(loader, node, value);
+    } else if (!strcmp(key, "filter")) {
+        _handleFilterAttr(loader, node, value);
     } else if (!strcmp(key, "transform")) {
         node->transform = _parseTransformationMatrix(value);
     } else {
@@ -2104,6 +2288,8 @@ static bool _attrParseTextNode(void* data, const char* key, const char* value)
         _handleClipPathAttr(loader, node, value);
     } else if (!strcmp(key, "mask")) {
         _handleMaskAttr(loader, node, value);
+    } else if (!strcmp(key, "filter")) {
+        _handleFilterAttr(loader, node, value);
     } else if (!strcmp(key, "id")) {
         if (value) free(node->id);
         node->id = _copyId(value);
@@ -2147,7 +2333,8 @@ static constexpr struct
     {"polyline", sizeof("polyline"), _createPolylineNode},
     {"line", sizeof("line"), _createLineNode},
     {"image", sizeof("image"), _createImageNode},
-    {"text", sizeof("text"), _createTextNode}
+    {"text", sizeof("text"), _createTextNode},
+    {"feGaussianBlur", sizeof("feGaussianBlur"), _createGaussianBlurNode}
 };
 
 
@@ -2163,7 +2350,8 @@ static constexpr struct
     {"mask", sizeof("mask"), _createMaskNode},
     {"clipPath", sizeof("clipPath"), _createClipPathNode},
     {"style", sizeof("style"), _createCssStyleNode},
-    {"symbol", sizeof("symbol"), _createSymbolNode}
+    {"symbol", sizeof("symbol"), _createSymbolNode},
+    {"filter", sizeof("filter"), _createFilterNode}
 };
 
 
@@ -3061,6 +3249,10 @@ static void _copyAttr(SvgNode* to, const SvgNode* from)
         free(to->style->mask.url);
         to->style->mask.url = strdup(from->style->mask.url);
     }
+    if (from->style->filter.url) {
+        if (to->style->filter.url) free(to->style->filter.url);
+        to->style->filter.url = strdup(from->style->filter.url);
+    }
 
     //Copy node attribute
     switch (from->type) {
@@ -3555,13 +3747,29 @@ static void _updateComposite(SvgNode* node, SvgNode* root)
 }
 
 
+static void _updateFilter(SvgNode* node, SvgNode* root)
+{
+    if (node->style->filter.url && !node->style->filter.node) {
+        SvgNode* findResult = _findNodeById(root, node->style->filter.url);
+        if (findResult) node->style->filter.node = findResult;
+    }
+    if (node->child.count > 0) {
+        auto child = node->child.data;
+        for (uint32_t i = 0; i < node->child.count; ++i, ++child) {
+            _updateFilter(*child, root);
+        }
+    }
+}
+
+
 static void _freeNodeStyle(SvgStyleProperty* style)
 {
     if (!style) return;
 
-    //style->clipPath.node and style->mask.node has only the addresses of node. Therefore, node is released from _freeNode.
+    //style->clipPath.node/mask.node/filter.node has only the addresses of node. Therefore, node is released from _freeNode.
     free(style->clipPath.url);
     free(style->mask.url);
+    free(style->filter.url);
     free(style->cssClass);
 
     if (style->fill.paint.gradient) {
@@ -3768,6 +3976,9 @@ void SvgLoader::run(unsigned tid)
 
         _updateComposite(loaderData.doc, loaderData.doc);
         if (defs) _updateComposite(loaderData.doc, defs);
+
+        _updateFilter(loaderData.doc, loaderData.doc);
+        if (defs) _updateFilter(loaderData.doc, defs);
 
         _updateStyle(loaderData.doc, nullptr);
         if (defs) _updateStyle(defs, nullptr);
