@@ -992,11 +992,33 @@ void LottieBuilder::updateText(LottieLayer* layer, float frameNo)
 
     auto scale = doc.size;
     Point cursor = {0.0f, 0.0f};
-    auto scene = Scene::gen();
+    Point deltaCursor = {0.0f, 0.0f};
+    Point layout = {doc.bbox.pos.x, doc.bbox.pos.y - doc.shift};
+
     int line = 0;
     int space = 0;
     auto lineSpacing = 0.0f;
     auto totalLineSpacing = 0.0f;
+
+    auto scene = Scene::gen();
+    Matrix* matrix = nullptr;
+
+    auto push = [&scene, &scale, &layout](auto& shape) {
+        shape->translate(layout.x, layout.y);
+        shape->scale(scale);
+        scene->push(cast(shape));
+    };
+
+    auto pool = [&text, &matrix]() {
+        auto s = text->pooling();
+        s->reset();
+        matrix = &s->transform();
+        return s;
+    };
+
+    auto shape = pool();
+
+    auto prevRanged = false;
 
     //text string
     int idx = 0;
@@ -1008,27 +1030,29 @@ void LottieBuilder::updateText(LottieLayer* layer, float frameNo)
             //text layout position
             auto ascent = text->font->ascent * scale;
             if (ascent > doc.bbox.size.y) ascent = doc.bbox.size.y;
-            Point layout = {doc.bbox.pos.x, doc.bbox.pos.y + ascent - doc.shift};
+            layout = {doc.bbox.pos.x, doc.bbox.pos.y + ascent - doc.shift};
 
             //adjust the layout
             if (doc.justify == 1) layout.x += doc.bbox.size.x - (cursor.x * scale);  //right aligned
             else if (doc.justify == 2) layout.x += (doc.bbox.size.x * 0.5f) - (cursor.x * 0.5f * scale);  //center aligned
 
-            scene->translate(layout.x, layout.y);
-            scene->scale(scale);
+            push(shape);
 
-            layer->scene->push(std::move(scene));
-
-            if (*p == '\0') break;
+            if (*p == '\0') {
+                layer->scene->push(std::move(scene));
+                break;
+            }
             ++p;
 
             totalLineSpacing += lineSpacing;
             lineSpacing = 0.0f;
 
-            //new text group, single scene for each line
-            scene = Scene::gen();
             cursor.x = 0.0f;
             cursor.y = (++line * doc.height + totalLineSpacing) / scale;
+            deltaCursor = {0.0f, 0.0f};
+
+            shape = pool();
+            translate(matrix, cursor.x, cursor.y);
             continue;
         }
 
@@ -1040,70 +1064,83 @@ void LottieBuilder::updateText(LottieLayer* layer, float frameNo)
             auto glyph = *g;
             //draw matched glyphs
             if (!strncmp(glyph->code, p, glyph->len)) {
-                auto shape = text->pooling();
-                shape->reset();
+                auto ranged = false;
+                auto strokeColor = doc.stroke.color;
+                auto strokeOpacity = 255;
+                auto fillColor = doc.color;
+                auto fillOpacity = 255;
+                auto shapeOpacity = 255;
+
+                for (auto s = text->ranges.begin(); s < text->ranges.end(); ++s) {
+                    auto& range = *s;
+                    float start, end;
+                    range->range(frameNo, float(totalChars), start, end);
+
+                    auto basedIdx = idx;
+                    if (range->based == LottieTextRange::Based::CharsExcludingSpaces) basedIdx = idx - space;
+                    else if (range->based == LottieTextRange::Based::Words) basedIdx = line + space;
+                    else if (range->based == LottieTextRange::Based::Lines) basedIdx = line;
+
+                    if (basedIdx < start || basedIdx >= end) continue;
+
+                    if (!ranged) {
+                        ranged = true;
+                        push(shape);
+                        shape = pool();
+                    }
+
+                    rotate(matrix, range->style.rotation(frameNo));
+                    auto glyphScale = range->style.scale(frameNo) * 0.01f;
+                    tvg::scale(matrix, glyphScale.x, glyphScale.y);
+                    auto position = range->style.position(frameNo);
+                    translate(matrix, position.x + cursor.x, position.y + cursor.y);
+
+                    strokeColor = range->style.strokeColor(frameNo);
+                    strokeOpacity = range->style.strokeOpacity(frameNo);
+                    fillColor = range->style.fillColor(frameNo);
+                    fillOpacity = range->style.fillOpacity(frameNo);
+                    shapeOpacity = range->style.opacity(frameNo);
+
+                    cursor.x += range->style.letterSpacing(frameNo);
+
+                    auto spacing = range->style.lineSpacing(frameNo);
+                    if (spacing > lineSpacing) lineSpacing = spacing;
+                }
+
+                if (!ranged) {
+                    if (prevRanged) {
+                        push(shape);
+                        shape = pool();
+                        translate(matrix, cursor.x, cursor.y);
+                    } else {
+                        translate(matrix, deltaCursor.x, deltaCursor.y);
+                    }
+                }
+                prevRanged = ranged;
+
                 for (auto g = glyph->children.begin(); g < glyph->children.end(); ++g) {
                     auto group = static_cast<LottieGroup*>(*g);
                     for (auto p = group->children.begin(); p < group->children.end(); ++p) {
-                        if (static_cast<LottiePath*>(*p)->pathset(frameNo, P(shape)->rs.path.cmds, P(shape)->rs.path.pts, nullptr, nullptr, nullptr)) {
+                        if (static_cast<LottiePath*>(*p)->pathset(frameNo, P(shape)->rs.path.cmds, P(shape)->rs.path.pts, matrix, nullptr, nullptr)) {
                             P(shape)->update(RenderUpdateFlag::Path);
                         }
                     }
                 }
-                shape->fill(doc.color.rgb[0], doc.color.rgb[1], doc.color.rgb[2]);
-                shape->translate(cursor.x, cursor.y);
-                shape->opacity(255);
 
                 if (doc.stroke.render) {
                     shape->strokeJoin(StrokeJoin::Round);
                     shape->strokeWidth(doc.stroke.width / scale);
-                    shape->strokeFill(doc.stroke.color.rgb[0], doc.stroke.color.rgb[1], doc.stroke.color.rgb[2]);
+                    shape->strokeFill(strokeColor.rgb[0], strokeColor.rgb[1], strokeColor.rgb[2], strokeOpacity);
                 }
-
-                //text range process
-                for (auto s = text->ranges.begin(); s < text->ranges.end(); ++s) {
-                    float start, end;
-                    (*s)->range(frameNo, float(totalChars), start, end);
-
-                    auto basedIdx = idx;
-                    if ((*s)->based == LottieTextRange::Based::CharsExcludingSpaces) basedIdx = idx - space;
-                    else if ((*s)->based == LottieTextRange::Based::Words) basedIdx = line + space;
-                    else if ((*s)->based == LottieTextRange::Based::Lines) basedIdx = line;
-
-                    if (basedIdx < start || basedIdx >= end) continue;
-                    auto& matrix = shape->transform();
-
-                    shape->opacity((*s)->style.opacity(frameNo));
-
-                    auto color = (*s)->style.fillColor(frameNo);
-                    shape->fill(color.rgb[0], color.rgb[1], color.rgb[2], (*s)->style.fillOpacity(frameNo));
-
-                    rotate(&matrix, (*s)->style.rotation(frameNo));
-
-                    auto glyphScale = (*s)->style.scale(frameNo) * 0.01f;
-                    tvg::scale(&matrix, glyphScale.x, glyphScale.y);
-
-                    auto position = (*s)->style.position(frameNo);
-                    translate(&matrix, position.x, position.y);
-
-                    if (doc.stroke.render) {
-                        auto strokeColor = (*s)->style.strokeColor(frameNo);
-                        shape->strokeWidth((*s)->style.strokeWidth(frameNo) / scale);
-                        shape->strokeFill(strokeColor.rgb[0], strokeColor.rgb[1], strokeColor.rgb[2], (*s)->style.strokeOpacity(frameNo));
-                    }
-                    cursor.x += (*s)->style.letterSpacing(frameNo);
-
-                    auto spacing = (*s)->style.lineSpacing(frameNo);
-                    if (spacing > lineSpacing) lineSpacing = spacing;
-                }
-
-                scene->push(cast(shape));
+                shape->fill(fillColor.rgb[0], fillColor.rgb[1], fillColor.rgb[2], fillOpacity);
+                shape->opacity(shapeOpacity);
 
                 p += glyph->len;
                 idx += glyph->len;
 
                 //advance the cursor position horizontally
-                cursor.x += glyph->width + doc.tracking;
+                deltaCursor.x = glyph->width + doc.tracking;
+                cursor.x += deltaCursor.x;
 
                 found = true;
                 break;
