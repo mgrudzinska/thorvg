@@ -67,6 +67,7 @@ struct Example
     virtual bool content(tvg::Canvas* canvas, uint32_t w, uint32_t h) = 0;
     virtual bool update(tvg::Canvas* canvas, uint32_t elapsed) { return false; }
     virtual bool clicked(tvg::Canvas* canvas, int32_t x, int32_t y) { return false; }
+    virtual bool scrolled(tvg::Canvas* canvas, int32_t x, int32_t y) { return false; }
     virtual void populate(const char* path) {}
     virtual ~Example() {}
 
@@ -220,6 +221,12 @@ struct Window
                     }
                     case SDL_MOUSEBUTTONDOWN: {
                         if (example->clicked(canvas, event.button.x, event.button.y)) {
+                            needDraw = true;
+                        }
+                        break;
+                    }
+                    case SDL_MOUSEWHEEL: {
+                        if (example->scrolled(canvas, event.wheel.x, event.wheel.y)) {
                             needDraw = true;
                         }
                         break;
