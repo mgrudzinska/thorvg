@@ -316,6 +316,7 @@ bool TtfReader::header()
 
     metrics.unitsPerEm = _u16(data, head + 18);
     metrics.locaFormat = _u16(data, head + 50);
+    printf("unitsPerEm  %d   locaFormat %d   minw %f   \n", (int)metrics.unitsPerEm, (int)metrics.locaFormat , metrics.minw);
 
     //horizontal metrics
     auto hhea = table("hhea");

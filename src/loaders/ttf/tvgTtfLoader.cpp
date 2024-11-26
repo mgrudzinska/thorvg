@@ -216,6 +216,7 @@ bool TtfLoader::transform(Paint* paint, float fontSize, bool italic)
     auto dpi = 96.0f / 72.0f;   //dpi base?
     scale = fontSize * dpi / reader.metrics.unitsPerEm;
     if (italic) shift = -scale * 0.18f;  //experimental decision.
+    printf("W TRANSFOMT MIN W to musi byc ost wartosc %f   units %d\n", reader.metrics.minw,  (int)reader.metrics.unitsPerEm);
     Matrix m = {scale, shift, -(shift * reader.metrics.minw), 0, scale, 0, 0, 0, 1};
     paint->transform(m);
 

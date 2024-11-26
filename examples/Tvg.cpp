@@ -77,6 +77,7 @@ struct UserExample : tvgexam::Example
     {
         if (!canvas) return false;
 
+        if (!tvgexam::verify(tvg::Text::load(EXAMPLE_DIR"/font/Arial.ttf"))) return false;
         //Background
         auto shape = tvg::Shape::gen();
         shape->appendRect(0, 0, w, h);
@@ -111,5 +112,5 @@ struct UserExample : tvgexam::Example
 
 int main(int argc, char **argv)
 {
-    return tvgexam::main(new UserExample, argc, argv, 1280, 1280);
+    return tvgexam::main(new UserExample, argc, argv, 800,800);
 }

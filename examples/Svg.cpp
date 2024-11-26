@@ -77,6 +77,7 @@ struct UserExample : tvgexam::Example
     {
         if (!canvas) return false;
 
+        if (!tvgexam::verify(tvg::Text::load(EXAMPLE_DIR"/font/Arial.ttf"))) return false;
         //Background
         auto shape = tvg::Shape::gen();
         shape->appendRect(0, 0, w, h);

@@ -32,31 +32,38 @@ struct UserExample : tvgexam::Example
     {
         if (!canvas) return false;
 
+        if (!tvgexam::verify(tvg::Text::load(EXAMPLE_DIR"/font/Arial.ttf"))) return false;
+
+
         //Background
         auto bg = tvg::Shape::gen();
         bg->appendRect(0, 0, w, h);    //x, y, w, h
-        bg->fill(255, 255, 255);       //r, g, b
+        bg->fill(75, 75, 75);       //r, g, b
         canvas->push(std::move(bg));
 
+
         char buf[PATH_MAX];
-        snprintf(buf, sizeof(buf), EXAMPLE_DIR"/svg/logo.svg");
+        snprintf(buf, sizeof(buf), EXAMPLE_DIR"/svg/thanks.svg");
 
         auto picture = tvg::Picture::gen();
         if (!tvgexam::verify(picture->load(buf))) return false;
 
-        float scale;
-        float shiftX = 0.0f, shiftY = 0.0f;
-        float w2, h2;
-        picture->size(&w2, &h2);
-        if (w2 > h2) {
-            scale = w / w2;
-            shiftY = (h - h2 * scale) * 0.5f;
-        } else {
-            scale = h / h2;
-            shiftX = (w - w2 * scale) * 0.5f;
-        }
-        picture->translate(shiftX, shiftY);
-        picture->scale(scale);
+        // float scale;
+        // float shiftX = 0.0f, shiftY = 0.0f;
+        // float w2, h2;
+        // picture->size(&w2, &h2);
+        // if (w2 > h2) {
+        //     scale = w / w2;
+        //     shiftY = (h - h2 * scale) * 0.5f;
+        // } else {
+        //     scale = h / h2;
+        //     shiftX = (w - w2 * scale) * 0.5f;
+        // }
+        // picture->translate(shiftX, shiftY);
+        // picture->scale(scale);
+
+        // picture->scale(0.8);
+        // picture->translate(50,200);
 
         canvas->push(std::move(picture));
 

@@ -46,7 +46,7 @@ unique_ptr<tvg::Paint> tvgClippedImage(uint32_t * data, int width, int height)
 unique_ptr<tvg::Paint> tvgMaskedSvg()
 {
     auto svg = tvg::Picture::gen();
-    if (!tvgexam::verify(svg->load(EXAMPLE_DIR"/svg/tiger.svg"))) return nullptr;
+    if (!tvgexam::verify(svg->load(EXAMPLE_DIR"/svg/thanks.svg"))) return nullptr;
     svg->opacity(200);
     svg->scale(0.3);
     svg->translate(50, 450);
@@ -70,7 +70,7 @@ unique_ptr<tvg::Paint> tvgMaskedSvg()
     svgMask->translate(30, 440);
     svgMask->opacity(200);
     svgMask->scale(0.7);
-    svg->composite(std::move(svgMask), tvg::CompositeMethod::AlphaMask);
+    //svg->composite(std::move(svgMask), tvg::CompositeMethod::AlphaMask);
 
     return svg;
 }
@@ -155,6 +155,7 @@ void exportTvg()
     //prepare the main scene
     auto scene = tvg::Scene::gen();
 
+    /*
     //prepare image source
     const int width = 200;
     const int height = 300;
@@ -208,6 +209,54 @@ void exportTvg()
     mask->appendCircle(400, 400, 15, 15);
     mask->fill(0, 0, 0);
     scene->composite(std::move(mask), tvg::CompositeMethod::InvAlphaMask);
+*/
+
+    if (!tvgexam::verify(tvg::Text::load(EXAMPLE_DIR"/font/Arial.ttf"))) return;
+
+    auto shape = tvg::Shape::gen();
+    shape->appendRect(0, 0, 800, 800);
+    shape->fill(255, 255, 255);
+    scene->push(std::move(shape));
+
+    // auto svg = tvg::Picture::gen();
+    // if (!tvgexam::verify(svg->load(EXAMPLE_DIR"/svg/page1.svg"))) return;
+    // svg->scale(0.1);
+    // // svg->translate(50, 450);
+    // scene->push(std::move(svg));
+
+
+
+    auto page2 = unique_ptr<tvg::Animation>(tvg::Animation::gen());
+    auto picture = page2->picture();
+    picture->load(EXAMPLE_DIR"/svg/page2.json");
+    picture->scale(0.3f);
+    picture->translate(400, 0);
+    scene->push(tvg::cast(picture));
+
+
+
+    //
+    // auto wr = tvg::Scene::gen();
+    //
+    //
+    // // auto shape = tvg::Shape::gen();
+    // // shape->appendRect(0, 0, 100, 100);
+    // // shape->fill(255, 0, 0);
+    // // wr->push(std::move(shape));
+    //
+    //
+    // auto text = tvg::Text::gen();
+    // text->font("Arial", 80);
+    //
+    // //rozmiar czcionki tylko przesuwa text
+    //
+    // text->text("C");
+    // text->fill(255, 0, 0);
+    // wr->push(std::move(text));
+    //
+    //
+    // scene->push(std::move(wr));
+
 
     //save the tvg file
     auto saver = tvg::Saver::gen();

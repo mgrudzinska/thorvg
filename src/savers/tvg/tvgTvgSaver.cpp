@@ -28,6 +28,8 @@
 #include "tvgShape.h"
 #include "tvgFill.h"
 #include "tvgPicture.h"
+#include <tvgText.h>
+
 
 #ifdef _WIN32
     #include <malloc.h>
@@ -646,6 +648,55 @@ TvgBinCounter TvgSaver::serializePicture(const Picture* picture, const Matrix* p
 }
 
 
+TvgBinCounter TvgSaver::serializeText(const Text* text, const Matrix* pTransform, const Matrix* cTransform)
+{printf("MGS %s %s %d \n", __FILE__, __func__, __LINE__);
+    if (!P(text)->shape) return 0;
+
+    //update shape inside text:
+    P(text)->load();
+
+    auto fontSize = P(text)->fontSize;
+    auto italic = P(text)->italic;
+
+    //copied from the ttf loader
+    auto unitsPerEm = 2048.0f;
+    auto minw = 1297.0f;//1163.0f;  //MGS to raczej nie dziala
+    auto shift = 0.0f;
+    auto dpi = 96.0f / 72.0f;   //dpi base?
+    auto scale = fontSize * dpi / unitsPerEm;
+    if (italic) shift = -scale * 0.18f;  //experimental decision.
+    Matrix m = {scale, shift, -(shift * minw), 0, scale, 0, 0, 0, 1};
+
+
+    printf("serializuje text   %f %d\n", fontSize, italic);
+    printf("m:\n%f %f %f\n %f %f %f\n %f %f %f\n", m.e11, m.e12, m.e13, m.e21, m.e22, m.e23, m.e31, m.e32, m.e33);
+
+    Matrix* mm = new Matrix(); //mem leak
+    *mm = *cTransform * m;
+
+    //printy:
+    m = *mm;
+    printf("mm:\n%f %f %f\n %f %f %f\n %f %f %f\n", m.e11, m.e12, m.e13, m.e21, m.e22, m.e23, m.e31, m.e32, m.e33);
+    if (pTransform) {
+        m = *pTransform;
+        printf("pTr:\n%f %f %f\n %f %f %f\n %f %f %f\n", m.e11, m.e12, m.e13, m.e21, m.e22, m.e23, m.e31, m.e32, m.e33);
+    }
+    if (cTransform) {
+        m = *cTransform;
+        printf("cTr:\n%f %f %f\n %f %f %f\n %f %f %f\n", m.e11, m.e12, m.e13, m.e21, m.e22, m.e23, m.e31, m.e32, m.e33);
+    }
+    m = PP(text)->transform();
+    printf("text:\n%f %f %f\n %f %f %f\n %f %f %f\n", m.e11, m.e12, m.e13, m.e21, m.e22, m.e23, m.e31, m.e32, m.e33);
+
+    printf("\n=============\n");
+    printf("%d %d \n", P(text)->shape->pathCommands(nullptr), P(text)->shape->pathCoords(nullptr));
+
+
+    return serializeShape(P(text)->shape, pTransform, mm); // to dziala
+    //return serializeShape(P(text)->shape, pTransform, cTransform);
+}
+
+
 TvgBinCounter TvgSaver::serializeComposite(const Paint* cmpTarget, CompositeMethod cmpMethod, const Matrix* pTransform)
 {
     writeTag(TVG_TAG_PAINT_CMP_TARGET);
@@ -713,10 +764,7 @@ TvgBinCounter TvgSaver::serialize(const Paint* paint, const Matrix* pTransform, 
         case Type::Shape: return serializeShape(static_cast<const Shape*>(paint), pTransform, &transform);
         case Type::Scene: return serializeScene(static_cast<const Scene*>(paint), pTransform, &transform);
         case Type::Picture: return serializePicture(static_cast<const Picture*>(paint), pTransform, &transform);
-        case Type::Text: {
-            TVGERR("TVG", "TODO: Text Serialization!");
-            return 0;
-        }
+        case Type::Text: return serializeText(static_cast<const Text*>(paint), pTransform, &transform);
         default: return 0;
     }
 
@@ -746,7 +794,7 @@ void TvgSaver::run(unsigned tid)
                 break;
             }
             case Type::Text: {
-                TVGERR("TVG", "TODO: Text Serialization!");
+                serializeText(static_cast<const Text*>(paint), nullptr, &transform);
                 break;
             }
             default: break;

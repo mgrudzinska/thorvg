@@ -32,6 +32,9 @@ struct UserExample : tvgexam::Example
     {
         if (!canvas) return false;
 
+        //if (!tvgexam::verify(tvg::Text::load(EXAMPLE_DIR"/font/Arial.ttf"))) return false;
+
+
         //load the tvg file
         auto picture = tvg::Picture::gen();
         if (!tvgexam::verify(picture->load(EXAMPLE_DIR"/tvg/test.tvg"), "You might need to run \"TvgSaver\" example first to generate the \"test.tvg\".")) {
@@ -42,8 +45,12 @@ struct UserExample : tvgexam::Example
         picture->size(&w2, &h2);
         cout << "default tvg view size = " << w2 << " x " << h2 << endl;
 
-        picture->translate(w2 * 0.1f, h2 * 0.1f);
-        picture->size(w2 * 0.8f, h2 * 0.8f);
+        // picture->translate(w2 * 0.1f, h2 * 0.1f);
+        //picture->size(w2 * 0.8f, h2 * 0.8f);
+
+
+       // picture->scale(0.1);
+        // picture->translate(50,200);
 
         canvas->push(std::move(picture));
 
@@ -58,5 +65,5 @@ struct UserExample : tvgexam::Example
 
 int main(int argc, char **argv)
 {
-    return tvgexam::main(new UserExample, argc, argv);
+    return tvgexam::main(new UserExample, argc, argv, 800,800,0,false);
 }
