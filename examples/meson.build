@@ -18,6 +18,7 @@ if get_option('engines').contains('wg_beta')
 endif
 
 source_file = [
+    'POC.cpp',
     'Accessor.cpp',
     'AnimateMasking.cpp',
     'Animation.cpp',

@@ -67,6 +67,7 @@ struct Example
     virtual bool content(tvg::Canvas* canvas, uint32_t w, uint32_t h) = 0;
     virtual bool update(tvg::Canvas* canvas, uint32_t elapsed) { return false; }
     virtual bool clicked(tvg::Canvas* canvas, int32_t x, int32_t y) { return false; }
+    virtual bool scrolled(tvg::Canvas* canvas, int32_t x, int32_t y) { return false; }
     virtual void populate(const char* path) {}
     virtual ~Example() {}
 
@@ -225,6 +226,12 @@ struct Window
                         }
                         break;
                     }
+                    case SDL_MOUSEWHEEL: {
+                        if (example->scrolled(canvas, event.wheel.x, event.wheel.y)) {
+                            needDraw = true;
+                        }
+                        break;
+                    }
                     case SDL_WINDOWEVENT: {
                         if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
                             width = event.window.data1;
@@ -275,7 +282,7 @@ struct SwWindow : Window
     {
         if (!initialized) return;
 
-        window = SDL_CreateWindow("ThorVG Example (Software)", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE);
+        window = SDL_CreateWindow("MotionDoc Demo", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE);
 
         //Create a Canvas
         canvas = tvg::SwCanvas::gen().release();
