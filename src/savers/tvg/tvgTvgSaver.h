@@ -40,6 +40,7 @@ private:
     uint32_t headerSize;
     float vsize[2] = {0.0f, 0.0f};
     bool compress;
+    uint32_t id = 99910;
 
     bool flushTo(const std::string& path);
     bool saveEncoding(const std::string& path);
@@ -56,9 +57,10 @@ private:
 
     TvgBinCounter serialize(const Paint* paint, const Matrix* pTransform, bool compTarget = false);
     TvgBinCounter serializeScene(const Scene* scene, const Matrix* pTransform, const Matrix* cTransform);
-    TvgBinCounter serializeShape(const Shape* shape, const Matrix* pTransform, const Matrix* cTransform);
+    TvgBinCounter serializeText(const Text* text, const Matrix* pTransform, const Matrix* cTransform);
+    TvgBinCounter serializeShape(const Shape* shape, const Matrix* pTransform, const Matrix* cTransform, bool setId = false);
     TvgBinCounter serializePicture(const Picture* picture, const Matrix* pTransform, const Matrix* cTransform);
-    TvgBinCounter serializePaint(const Paint* paint, const Matrix* pTransform);
+    TvgBinCounter serializePaint(const Paint* paint, const Matrix* pTransform, bool setId = false);
     TvgBinCounter serializeFill(const Fill* fill, TvgBinTag tag, const Matrix* pTransform);
     TvgBinCounter serializeStroke(const Shape* shape, const Matrix* pTransform, bool preTransform);
     TvgBinCounter serializePath(const Shape* shape, const Matrix* transform, bool preTransform);

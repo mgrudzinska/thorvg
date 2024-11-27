@@ -22,6 +22,8 @@
 
 #include "Example.h"
 
+//#define SAVE_TVG
+
 /************************************************************************/
 /* ThorVG Drawing Contents                                              */
 /************************************************************************/
@@ -191,7 +193,7 @@ struct UserExample : tvgexam::Example
             //lottie
             page7 = tvg::Animation::gen();
             auto picture = page7->picture();
-            picture->load(EXAMPLE_DIR"/poc/page6.json");
+            picture->load(EXAMPLE_DIR"/poc/page7.json");
             picture->scale(1.31);
             page->push(tvg::cast(picture));
 
@@ -265,6 +267,13 @@ struct UserExample : tvgexam::Example
 
             doc->push(std::move(page));
         }
+
+#ifdef SAVE_TVG
+        auto saver = Saver::gen();
+        if (!tvgexam::verify(saver->save(tvg::cast<tvg::Scene>(doc->duplicate()), EXAMPLE_DIR"/tvg/poc.tvg"))) return false;
+        saver->sync();
+        cout << "Successfully exported to tvg/poc.tvg, Please check the result using POC_TVG!" << endl;
+#endif
 
         canvas->push(tvg::cast(doc));
 
