@@ -449,6 +449,13 @@ static bool _parseJson(TvgBinBlock block, Paint* paint)
             picture->transform(m);
             return true;
         }
+        case TVG_TAG_JSON_ID: {
+            if (block.length != SIZE(uint32_t)) return false;
+            uint32_t id = 0;
+            READ_UI32(&id, block.data);
+            picture->id = id;
+            return true;
+        }
     }
 
     return true;

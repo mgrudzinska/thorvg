@@ -100,5 +100,6 @@ using TvgBinFlag = TvgBinByte;
 
 //Json
 #define TVG_TAG_JSON_DATA                           (TvgBinTag)0x80
+#define TVG_TAG_JSON_ID                             (TvgBinTag)0x81
 
 #endif //_TVG_BINARY_DESC_H_

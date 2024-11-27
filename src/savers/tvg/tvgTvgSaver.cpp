@@ -28,7 +28,7 @@
 #include "tvgShape.h"
 #include "tvgFill.h"
 #include "tvgPicture.h"
-#include <tvgText.h>
+#include "tvgText.h"
 
 
 #ifdef _WIN32
@@ -603,6 +603,10 @@ TvgBinCounter TvgSaver::serializePicture(const Picture* picture, const Matrix* p
 
         TvgBinCounter cnt = writeTagProperty(TVG_TAG_JSON_DATA, strlen(P(picture)->jsonPath), jsonPath);
         cnt += writeTransform(cTransform, TVG_TAG_PAINT_TRANSFORM);
+        auto fileName = strrchr(jsonPath, '/');
+        fileName++;
+        uint32_t id = tvg::Accessor::id(fileName);
+        cnt += writeTagProperty(TVG_TAG_JSON_ID, SIZE(id), &id);
         // cnt += serializePaint(picture, pTransform);
         writeReservedCount(cnt);
 
