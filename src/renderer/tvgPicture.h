@@ -66,6 +66,7 @@ struct Picture::Impl
     Picture* picture = nullptr;
     bool resizing = false;
     bool needComp = false;            //need composition
+    char* jsonPath = nullptr;
 
     bool needComposition(uint8_t opacity);
     bool render(RenderMethod* renderer);
@@ -125,6 +126,9 @@ struct Picture::Impl
     Result load(const string& path)
     {
         if (paint || surface) return Result::InsufficientCondition;
+
+        auto ext = path.substr(path.find_last_of(".") + 1);
+        if (!ext.compare("json")) jsonPath = strdup(path.c_str());
 
         bool invalid;  //Invalid Path
         auto loader = static_cast<ImageLoader*>(LoaderMgr::loader(path, &invalid));

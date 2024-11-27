@@ -51,6 +51,7 @@ using TvgBinFlag = TvgBinByte;
 #define TVG_TAG_CLASS_PICTURE                       (TvgBinTag)0xfc
 #define TVG_TAG_CLASS_SHAPE                         (TvgBinTag)0xfd
 #define TVG_TAG_CLASS_SCENE                         (TvgBinTag)0xfe
+#define TVG_TAG_CLASS_JSON                          (TvgBinTag)0xff
 
 
 //Paint
@@ -96,5 +97,8 @@ using TvgBinFlag = TvgBinByte;
 //Picture
 #define TVG_TAG_PICTURE_RAW_IMAGE                   (TvgBinTag)0x70
 #define TVG_TAG_PICTURE_MESH                        (TvgBinTag)0x71
+
+//Json
+#define TVG_TAG_JSON_DATA                           (TvgBinTag)0x80
 
 #endif //_TVG_BINARY_DESC_H_
