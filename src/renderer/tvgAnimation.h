@@ -31,6 +31,12 @@ struct Animation::Impl
 {
     Picture* picture = nullptr;
 
+    Impl(Picture* p)
+    {
+        picture = p;
+        PP(picture)->ref();
+    }
+
     Impl()
     {
         picture = Picture::gen().release();

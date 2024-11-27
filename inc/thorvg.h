@@ -57,6 +57,10 @@ protected: \
 #define _TVG_DECLARE_ACCESSOR(A) \
     friend A
 
+#define _TVG_DECLARE_ANIMATE \
+private:\
+    Animation(Picture* picture)
+
 namespace tvg
 {
 
@@ -1982,7 +1986,10 @@ public:
      */
     static std::unique_ptr<Animation> gen() noexcept;
 
+    static std::unique_ptr<Animation> gen(Picture* picture) noexcept;
+
     _TVG_DECLARE_PRIVATE(Animation);
+    _TVG_DECLARE_ANIMATE;
 };
 
 
