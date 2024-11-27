@@ -1366,6 +1366,10 @@ public:
      */
     TVG_DEPRECATED static uint32_t identifier() noexcept;
 
+    float duration() const noexcept;
+    Result frame(float no) noexcept;
+    float totalFrame() const noexcept;
+
     _TVG_DECLARE_ACCESSOR(Animation);
     _TVG_DECLARE_PRIVATE(Picture);
 };

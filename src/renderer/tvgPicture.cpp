@@ -22,6 +22,7 @@
 
 #include "tvgPaint.h"
 #include "tvgPicture.h"
+#include "tvgFrameModule.h"
 
 /************************************************************************/
 /* Internal Class Implementation                                        */
@@ -228,4 +229,38 @@ const Paint* Picture::paint(uint32_t id) noexcept
 
     tvg::Accessor::gen()->set(this, cb, &value);
     return value.ret;
+}
+
+
+float Picture::duration() const noexcept
+{
+    auto loader = pImpl->loader;
+
+    if (!loader) return 0.0f;
+    if (!loader->animatable()) return 0.0f;
+
+    return static_cast<FrameModule*>(loader)->duration();
+}
+
+
+Result Picture::frame(float no) noexcept
+{
+    auto loader = pImpl->loader;
+
+    if (!loader) return Result::InsufficientCondition;
+    if (!loader->animatable()) return Result::NonSupport;
+
+    if (static_cast<FrameModule*>(loader)->frame(no)) return Result::Success;
+    return Result::InsufficientCondition;
+}
+
+
+float Picture::totalFrame() const noexcept
+{
+    auto loader = pImpl->loader;
+
+    if (!loader) return 0;
+    if (!loader->animatable()) return 0;
+
+    return static_cast<FrameModule*>(loader)->totalFrame();
 }

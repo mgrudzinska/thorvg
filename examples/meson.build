@@ -19,6 +19,7 @@ endif
 
 source_file = [
     'POC.cpp',
+    'POC_TVG.cpp',
     'Accessor.cpp',
     'AnimateMasking.cpp',
     'Animation.cpp',
