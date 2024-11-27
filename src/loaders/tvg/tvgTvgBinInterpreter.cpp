@@ -101,6 +101,13 @@ static bool _parsePaintProperty(TvgBinBlock block, Paint *paint)
             if (block.length < SIZE(TvgBinTag) + SIZE(TvgBinCounter)) return false;
             return _parseCmpTarget(block.data, block.end, paint);
         }
+        case TVG_TAG_PAINT_ID: {
+            if (block.length != SIZE(uint32_t)) return false;
+            uint32_t id = 0;
+            READ_UI32(&id, block.data);
+            paint->id = id;
+            return true;
+        }
     }
     return false;
 }
@@ -429,6 +436,41 @@ static bool _parsePicture(TvgBinBlock block, Paint* paint)
 }
 
 
+static bool _parseJson(TvgBinBlock block, Paint* paint)
+{
+    auto picture = static_cast<Picture*>(paint);
+    auto ptr = block.data;
+
+    switch (block.type) {
+        case TVG_TAG_JSON_DATA: {
+            auto jsonPath = (char*)malloc(block.length + 1);
+            memcpy(jsonPath, ptr, block.length);
+            jsonPath[block.length] = '\0';
+            picture->load(jsonPath);
+            return true;
+        }
+        case TVG_TAG_PAINT_TRANSFORM: {
+            if (block.length != SIZE(Matrix)) return false;
+            Matrix m;
+            memcpy(&m, block.data, SIZE(Matrix));
+            picture->transform(m);
+            return true;
+        }
+        case TVG_TAG_PAINT_ID: {
+            if (block.length != SIZE(uint32_t)) return false;
+            uint32_t id = 0;
+            READ_UI32(&id, block.data);
+            picture->id = id;
+            return true;
+        }
+        default: {
+            if (_parsePaintProperty(block, picture)) return true;
+        }
+    }
+
+    return true;
+}
+
 static Paint* _parsePaint(TvgBinBlock baseBlock)
 {
     bool (*parser)(TvgBinBlock, Paint*);
@@ -449,6 +491,11 @@ static Paint* _parsePaint(TvgBinBlock baseBlock)
         case TVG_TAG_CLASS_PICTURE: {
             paint = Picture::gen().release();
             parser = _parsePicture;
+            break;
+        }
+        case TVG_TAG_CLASS_JSON: {
+            paint = Picture::gen().release();
+            parser = _parseJson;
             break;
         }
         default: {

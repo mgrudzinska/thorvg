@@ -28,6 +28,7 @@
 #include "tvgShape.h"
 #include "tvgFill.h"
 #include "tvgPicture.h"
+#include "tvgText.h"
 
 #ifdef _WIN32
     #include <malloc.h>
@@ -310,7 +311,7 @@ TvgBinCounter TvgSaver::writeTransform(const Matrix* transform, TvgBinTag tag)
 }
 
 
-TvgBinCounter TvgSaver::serializePaint(const Paint* paint, const Matrix* pTransform)
+TvgBinCounter TvgSaver::serializePaint(const Paint* paint, const Matrix* pTransform, const char* id)
 {
     TvgBinCounter cnt = 0;
 
@@ -327,6 +328,10 @@ TvgBinCounter TvgSaver::serializePaint(const Paint* paint, const Matrix* pTransf
         cnt += serializeComposite(cmpTarget, cmpMethod, pTransform);
     }
 
+    if (id) {
+        auto paintId = Accessor::id(id);
+        cnt += writeTagProperty(TVG_TAG_PAINT_ID, SIZE(paintId), &paintId);
+    }
     return cnt;
 }
 
@@ -545,7 +550,7 @@ TvgBinCounter TvgSaver::serializePath(const Shape* shape, const Matrix* transfor
 }
 
 
-TvgBinCounter TvgSaver::serializeShape(const Shape* shape, const Matrix* pTransform, const Matrix* cTransform)
+TvgBinCounter TvgSaver::serializeShape(const Shape* shape, const Matrix* pTransform, const Matrix* cTransform, const char* id)
 {
     writeTag(TVG_TAG_CLASS_SHAPE);
     reserveCount();
@@ -582,7 +587,7 @@ TvgBinCounter TvgSaver::serializeShape(const Shape* shape, const Matrix* pTransf
     cnt += serializePath(shape, cTransform, preTransform);
 
     if (!preTransform) cnt += writeTransform(cTransform, TVG_TAG_PAINT_TRANSFORM);
-    cnt += serializePaint(shape, pTransform);
+    cnt += serializePaint(shape, pTransform, id);
 
     writeReservedCount(cnt);
 
@@ -593,6 +598,21 @@ TvgBinCounter TvgSaver::serializeShape(const Shape* shape, const Matrix* pTransf
 /* Picture has either a vector scene or a bitmap. */
 TvgBinCounter TvgSaver::serializePicture(const Picture* picture, const Matrix* pTransform, const Matrix* cTransform)
 {
+    if (P(picture)->jsonPath) {
+        auto jsonPath = P(picture)->jsonPath;
+
+        writeTag(TVG_TAG_CLASS_JSON);
+        reserveCount();
+
+        TvgBinCounter cnt = writeTagProperty(TVG_TAG_JSON_DATA, strlen(jsonPath), jsonPath);
+        cnt += writeTransform(cTransform, TVG_TAG_PAINT_TRANSFORM);
+        auto id = Accessor::id(jsonPath);
+        cnt += writeTagProperty(TVG_TAG_PAINT_ID, SIZE(id), &id);
+        writeReservedCount(cnt);
+
+        return SERIAL_DONE(cnt);
+    }
+
     auto it = IteratorAccessor::iterator(picture);
 
     //Case - Vector Scene:
@@ -643,6 +663,30 @@ TvgBinCounter TvgSaver::serializePicture(const Picture* picture, const Matrix* p
     writeReservedCount(cnt);
 
     return SERIAL_DONE(cnt);
+}
+
+
+TvgBinCounter TvgSaver::serializeText(const Text* text, const Matrix* pTransform, const Matrix* cTransform)
+{
+    if (!P(text)->shape) return 0;
+
+    //update shape inside text:
+    P(text)->load();
+
+    auto fontSize = P(text)->fontSize;
+    auto italic = P(text)->italic;
+
+    //copied from the ttf loader
+    auto unitsPerEm = 2048.0f;
+    auto minw = 1297.0f;//TODO: this is not a const value - important for 'italic'
+    auto shift = 0.0f;
+    auto dpi = 96.0f / 72.0f;
+    auto scale = fontSize * dpi / unitsPerEm;
+    if (italic) shift = -scale * 0.18f;
+    Matrix m = {scale, shift, -(shift * minw), 0, scale, 0, 0, 0, 1};
+    Matrix cTransformNew = *cTransform * m;
+
+    return serializeShape(P(text)->shape, pTransform, &cTransformNew, P(text)->utf8);
 }
 
 
@@ -713,10 +757,7 @@ TvgBinCounter TvgSaver::serialize(const Paint* paint, const Matrix* pTransform, 
         case Type::Shape: return serializeShape(static_cast<const Shape*>(paint), pTransform, &transform);
         case Type::Scene: return serializeScene(static_cast<const Scene*>(paint), pTransform, &transform);
         case Type::Picture: return serializePicture(static_cast<const Picture*>(paint), pTransform, &transform);
-        case Type::Text: {
-            TVGERR("TVG", "TODO: Text Serialization!");
-            return 0;
-        }
+        case Type::Text: return serializeText(static_cast<const Text*>(paint), pTransform, &transform);
         default: return 0;
     }
 
@@ -746,7 +787,7 @@ void TvgSaver::run(unsigned tid)
                 break;
             }
             case Type::Text: {
-                TVGERR("TVG", "TODO: Text Serialization!");
+                serializeText(static_cast<const Text*>(paint), nullptr, &transform);
                 break;
             }
             default: break;
