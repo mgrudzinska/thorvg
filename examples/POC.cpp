@@ -275,17 +275,35 @@ struct UserExample : tvgexam::Example
     {
         #define SCROLL_SPEED 80
 
-        dy += y * SCROLL_SPEED;
+        dy -= y * SCROLL_SPEED;
 
         if (dy < 0) dy = 0;
         if (dy > 8560) dy = 8560;
 
-        doc->translate((float)dx, -(float)dy);
+        doc->translate((float)dx, (float)-dy);
 
-        printf("%d %d\n", dx, dy);
+        printf("pos: %d\n", dy);
 
         return true;
     }
+
+
+    bool page(Canvas* canvas, int direction) override
+    {
+        #define PAGE_SIZE 1000
+
+        dy -= direction * PAGE_SIZE;
+
+        if (dy < 0) dy = 0;
+        if (dy > 8560) dy = 8560;
+
+        doc->translate((float)dx, (float)-dy);
+
+        printf("pos: %d\n", dy);
+
+        return true;
+    }
+
 
     bool update(tvg::Canvas* canvas, uint32_t elapsed) override
     {

@@ -67,6 +67,7 @@ struct Example
     virtual bool content(tvg::Canvas* canvas, uint32_t w, uint32_t h) = 0;
     virtual bool update(tvg::Canvas* canvas, uint32_t elapsed) { return false; }
     virtual bool clicked(tvg::Canvas* canvas, int32_t x, int32_t y) { return false; }
+    virtual bool page(tvg::Canvas* canvas, int direction) { return false; }
     virtual bool scrolled(tvg::Canvas* canvas, int32_t x, int32_t y) { return false; }
     virtual void populate(const char* path) {}
     virtual ~Example() {}
@@ -217,6 +218,14 @@ struct Window
                     case SDL_KEYUP: {
                         if (event.key.keysym.sym == SDLK_ESCAPE) {
                             running = false;
+                        } else if (event.key.keysym.sym == SDLK_PAGEUP) {
+                            if (example->page(canvas, 1)) {
+                                needDraw = true;
+                            }
+                        } else if (event.key.keysym.sym == SDLK_PAGEDOWN) {
+                            if (example->page(canvas, -1)) {
+                                needDraw = true;
+                            }
                         }
                         break;
                     }
