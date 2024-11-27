@@ -42,6 +42,11 @@ Animation::Animation() : pImpl(new Impl)
 }
 
 
+Animation::Animation(Picture* picture) : pImpl(new Impl(picture))
+{
+}
+
+
 Result Animation::frame(float no) noexcept
 {
     auto loader = pImpl->picture->pImpl->loader;
@@ -123,4 +128,10 @@ Result Animation::segment(float *begin, float *end) noexcept
 unique_ptr<Animation> Animation::gen() noexcept
 {
     return unique_ptr<Animation>(new Animation);
+}
+
+
+unique_ptr<Animation> Animation::gen(Picture* picture) noexcept
+{
+    return unique_ptr<Animation>(new Animation(picture));
 }
