@@ -38,8 +38,8 @@ struct UserExample : tvgexam::Example
     Picture* page6 = nullptr;
     Picture* page7 = nullptr;
     Picture* page8 = nullptr;
-    Shape* page9 = nullptr;
-    uint32_t maxY = 9560;
+    Picture* page9 = nullptr;
+    uint32_t maxY = 8650;
 
     bool content(Canvas* canvas, uint32_t w, uint32_t h) override
     {
@@ -68,7 +68,7 @@ struct UserExample : tvgexam::Example
                 page8 = (Picture*)paint;
             }
             if (auto paint = picture->paint(99914)) {
-                page9 = (Shape*)paint;
+                page9 = (Picture*)paint;
             }
         }
 
@@ -129,7 +129,8 @@ struct UserExample : tvgexam::Example
         }
 
         {
-            page9->fill(rand() % 255, rand() % 255, rand() % 255);
+            auto progress = tvgexam::progress(elapsed, page8->duration());
+            page9->frame(page9->totalFrame() * progress);
         }
 
         canvas->update();

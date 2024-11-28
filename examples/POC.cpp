@@ -29,6 +29,7 @@
 /************************************************************************/
 
 using namespace tvg;
+using namespace std;
 
 struct UserExample : tvgexam::Example
 {
@@ -38,7 +39,7 @@ struct UserExample : tvgexam::Example
     unique_ptr<tvg::Animation> page6 = nullptr;
     unique_ptr<tvg::Animation> page7 = nullptr;
     unique_ptr<tvg::Animation> page8 = nullptr;
-    Text* page9 = nullptr;
+    unique_ptr<tvg::Animation> page9 = nullptr;
 
     bool content(Canvas* canvas, uint32_t w, uint32_t h) override
     {
@@ -257,13 +258,13 @@ struct UserExample : tvgexam::Example
                 page->push(std::move(bg));
             }
 
-            //text
-            page9 = Text::gen().release();
-            page9->font("Arial", 100, "bold");
-            page9->text("The End :)");
-            page9->translate(370, 320);
-            page9->fill(0, 0, 0);
-            page->push(tvg::cast(page9));
+            //lottie
+            page9 = tvg::Animation::gen();
+            auto picture = page9->picture();
+            picture->load(EXAMPLE_DIR"/poc/end.json");
+            picture->scale(2);
+            picture->translate(350, 100);
+            page->push(tvg::cast(picture));
 
             doc->push(std::move(page));
         }
@@ -287,7 +288,7 @@ struct UserExample : tvgexam::Example
         dy -= y * SCROLL_SPEED;
 
         if (dy < 0) dy = 0;
-        if (dy > 8560) dy = 8560;
+        if (dy > 8650) dy = 8650;
 
         doc->translate((float)dx, (float)-dy);
 
@@ -304,7 +305,7 @@ struct UserExample : tvgexam::Example
         dy -= direction * PAGE_SIZE;
 
         if (dy < 0) dy = 0;
-        if (dy > 8560) dy = 8560;
+        if (dy > 8650) dy = 8650;
 
         doc->translate((float)dx, (float)-dy);
 
@@ -337,7 +338,8 @@ struct UserExample : tvgexam::Example
         }
 
         {
-             page9->fill(rand() % 255, rand() % 255, rand() % 255);
+            auto progress = tvgexam::progress(elapsed, page9->duration());
+            page9->frame(page9->totalFrame() * progress);
         }
 
         canvas->update();
