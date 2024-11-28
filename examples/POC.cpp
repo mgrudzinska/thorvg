@@ -35,7 +35,7 @@ struct UserExample : tvgexam::Example
 {
     int dx = 0, dy = 0;
     Scene* doc = nullptr;
-    unique_ptr<tvg::Animation> page2 = nullptr;
+    unique_ptr<tvg::Animation> page3 = nullptr;
     unique_ptr<tvg::Animation> page6 = nullptr;
     unique_ptr<tvg::Animation> page7 = nullptr;
     unique_ptr<tvg::Animation> page8 = nullptr;
@@ -74,7 +74,7 @@ struct UserExample : tvgexam::Example
             //bg
             {
                 auto bg = Shape::gen();
-                bg->appendRect(50, 70, 1307, 1950);
+                bg->appendRect(50, 70, 1307, 1650);
                 bg->fill(255, 255, 255);
                 page->push(std::move(bg));
             }
@@ -90,14 +90,15 @@ struct UserExample : tvgexam::Example
                 page->push(std::move(picture));
             }
 
-            //lottie
+            //figure
             {
-                page2 = unique_ptr<tvg::Animation>(tvg::Animation::gen());
-                auto picture = page2->picture();
-                picture->load(EXAMPLE_DIR"/poc/page2.json");
-                picture->scale(1.2f);
-                picture->translate(300, 1500);
-                page->push(tvg::cast(picture));
+                auto picture = Picture::gen();
+                char buf[PATH_MAX];
+                snprintf(buf, sizeof(buf), EXAMPLE_DIR"/poc/page2.png");
+                picture->load(buf);
+                picture->translate(700, 400);
+                picture->scale(0.8f);
+                page->push(std::move(picture));
             }
 
             doc->push(std::move(page));
@@ -106,7 +107,7 @@ struct UserExample : tvgexam::Example
         //page 3
         {
             auto page = Scene::gen();
-            page->translate(0, 3650);
+            page->translate(0, 3350);
 
             //bg
             {
@@ -122,8 +123,26 @@ struct UserExample : tvgexam::Example
             snprintf(buf, sizeof(buf), EXAMPLE_DIR"/poc/page3.svg");
             picture->load(buf);
             picture->translate(100, 0);
-            picture->scale(1.5f);
+            picture->scale(2.0f);
             page->push(std::move(picture));
+
+            //bg
+            {
+                auto bg = Shape::gen();
+                bg->appendRect(700, 380, 500, 550);
+                bg->fill(255, 255, 255);
+                page->push(std::move(bg));           
+            }
+
+            //lottie
+            {
+                page3 = unique_ptr<tvg::Animation>(tvg::Animation::gen());
+                auto picture = page3->picture();
+                picture->load(EXAMPLE_DIR"/poc/page3.json");
+                picture->scale(0.5f);
+                picture->translate(700, 350);
+                page->push(tvg::cast(picture));
+            }
 
             doc->push(std::move(page));
         }
@@ -131,7 +150,7 @@ struct UserExample : tvgexam::Example
         //page 4
         {
             auto page = Scene::gen();
-            page->translate(50, 5240);
+            page->translate(50, 4940);
 
             //svg
             auto picture = Picture::gen();
@@ -147,7 +166,7 @@ struct UserExample : tvgexam::Example
         //page 5
         {
             auto page = Scene::gen();
-            page->translate(50, 6005);
+            page->translate(50, 5705);
 
             //svg
             auto picture = Picture::gen();
@@ -163,7 +182,7 @@ struct UserExample : tvgexam::Example
         //page 6
         {
             auto page = Scene::gen();
-            page->translate(50, 6775);
+            page->translate(50, 6475);
 
             //svg
             auto picture = Picture::gen();
@@ -178,8 +197,8 @@ struct UserExample : tvgexam::Example
                 page6 = unique_ptr<tvg::Animation>(tvg::Animation::gen());
                 auto picture = page6->picture();
                 picture->load(EXAMPLE_DIR"/poc/page6.json");
-                picture->scale(0.655f);
-                picture->translate(653, 135);
+                picture->translate(652, 200);
+                picture->size(655, 540);
                 page->push(tvg::cast(picture));
             }
 
@@ -189,7 +208,7 @@ struct UserExample : tvgexam::Example
         //page 7
         {
             auto page = Scene::gen();
-            page->translate(50, 7640);
+            page->translate(50, 7340);
 
             //lottie
             page7 = tvg::Animation::gen();
@@ -233,7 +252,7 @@ struct UserExample : tvgexam::Example
         //page 8
         {
             auto page = Scene::gen();
-            page->translate(50, 8775);
+            page->translate(50, 8475);
 
             //lottie
             page8 = tvg::Animation::gen();
@@ -248,7 +267,7 @@ struct UserExample : tvgexam::Example
         //page 9
         {
             auto page = Scene::gen();
-            page->translate(0, 9550);
+            page->translate(0, 9250);
 
             //bg
             {
@@ -288,7 +307,7 @@ struct UserExample : tvgexam::Example
         dy -= y * SCROLL_SPEED;
 
         if (dy < 0) dy = 0;
-        if (dy > 8650) dy = 8650;
+        if (dy > 8350) dy = 8350;
 
         doc->translate((float)dx, (float)-dy);
 
@@ -300,12 +319,12 @@ struct UserExample : tvgexam::Example
 
     bool page(Canvas* canvas, int direction) override
     {
-        #define PAGE_SIZE 1000
+        #define PAGE_SIZE 1500
 
         dy -= direction * PAGE_SIZE;
 
         if (dy < 0) dy = 0;
-        if (dy > 8650) dy = 8650;
+        if (dy > 8350) dy = 8350;
 
         doc->translate((float)dx, (float)-dy);
 
@@ -318,8 +337,8 @@ struct UserExample : tvgexam::Example
     bool update(tvg::Canvas* canvas, uint32_t elapsed) override
     {
         {
-            auto progress = tvgexam::progress(elapsed, page2->duration());
-            page2->frame(page2->totalFrame() * progress);
+            auto progress = tvgexam::progress(elapsed, page3->duration());
+            page3->frame(page3->totalFrame() * progress);
         }
 
         {
