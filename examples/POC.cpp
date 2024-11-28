@@ -229,30 +229,30 @@ struct UserExample : tvgexam::Example
 
             //text
             auto text = tvg::Text::gen();
-            text->font("Arial", 60);
+            text->font("Arial", 40);
             text->text("Long, long ago,");
-            text->translate(250, 100);
+            text->translate(350, 100);
             text->fill(255, 255, 255);
             page->push(std::move(text));
 
             auto text2 = tvg::Text::gen();
-            text2->font("Arial", 60);
+            text2->font("Arial", 40);
             text2->text("a kind and humble ghost");
-            text2->translate(250, 200);
+            text2->translate(350, 200);
             text2->fill(255, 255, 255);
             page->push(std::move(text2));
 
             auto text3 = tvg::Text::gen();
-            text3->font("Arial", 60);
-            text3->text("lived near our village.");
-            text3->translate(250, 300);
+            text3->font("Arial", 40);
+            text3->text("lived near LottieFiles village.");
+            text3->translate(350, 300);
             text3->fill(255, 255, 255);
             page->push(std::move(text3));
 
             auto text4 = tvg::Text::gen();
-            text4->font("Arial", 60);
-            text4->text("Its name is \"Jinny\"...");
-            text4->translate(250, 400);
+            text4->font("Arial", 40);
+            text4->text("His name was \"Jinny\"...");
+            text4->translate(350, 400);
             text4->fill(255, 255, 255);
             page->push(std::move(text4));
 
@@ -264,12 +264,44 @@ struct UserExample : tvgexam::Example
             auto page = Scene::gen();
             page->translate(50, 8475);
 
+            //text
+            auto text = tvg::Text::gen();
+            text->font("Arial", 40);
+            text->text("He had a lifelong dream of becoming the");
+            text->translate(100, 50);
+            text->fill(255, 255, 255);
+            page->push(std::move(text));
+
+            auto text2 = tvg::Text::gen();
+            text2->font("Arial", 40);
+            text2->text("awesome ghost in the world. Unfortunately,");
+            text2->translate(100, 150);
+            text2->fill(255, 255, 255);
+            page->push(std::move(text2));
+
+            auto text3 = tvg::Text::gen();
+            text3->font("Arial", 40);
+            text3->text("he had to first fulfill his Lottie design skill.");
+            text3->translate(100, 250);
+            text3->fill(255, 255, 255);
+            page->push(std::move(text3));
+
+            auto text4 = tvg::Text::gen();
+            text4->font("Arial", 40);
+            text4->text("Thus, he decided to become LoLo!");
+            text4->translate(100, 350);
+            text4->fill(255, 255, 255);
+            page->push(std::move(text4));
+
             //lottie
             page8 = tvg::Animation::gen();
             auto picture = page8->picture();
-            picture->load(EXAMPLE_DIR"/poc/video.json");
-            picture->scale(0.68);
+            picture->load(EXAMPLE_DIR"/poc/page8.json");
+            picture->scale(0.38);
+            picture->translate(900, 300);
             page->push(tvg::cast(picture));
+
+            doc->push(std::move(page));
 
             doc->push(std::move(page));
         }
