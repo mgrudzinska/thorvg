@@ -22,6 +22,8 @@
 
 #include "tvgIteratorAccessor.h"
 #include "tvgCompressor.h"
+#include <iostream>
+using namespace std;
 
 /************************************************************************/
 /* Internal Class Implementation                                        */
@@ -30,6 +32,9 @@
 static bool accessChildren(Iterator* it, function<bool(const Paint* paint, void* data)> func, void* data)
 {
     while (auto child = it->next()) {
+      if (child->id > 0) {
+        // cout << "child id: " << child->id << endl;
+      }
         //Access the child
         if (!func(child, data)) return false;
 

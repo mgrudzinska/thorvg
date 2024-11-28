@@ -27,6 +27,7 @@
 #ifdef THORVG_WG_RASTER_SUPPORT
     #include <webgpu/webgpu.h>
 #endif
+#include <iostream>
 
 using namespace emscripten;
 using namespace std;
@@ -34,11 +35,24 @@ using namespace tvg;
 
 static const char* NoError = "None";
 
+float tvgProgress(uint32_t elapsed, float durationInSec, bool rewind = false)
+{
+    auto duration = uint32_t(durationInSec * 1000.0f); //sec -> millisec.
+    if (duration == 0.0f) return 0.0f;
+    auto forward = ((elapsed / duration) % 2 == 0) ? true : false;
+    auto clamped = elapsed % duration;
+    auto progress = ((float)clamped / (float)duration);
+    if (rewind) return forward ? progress : (1 - progress);
+    return progress;
+}
+
 #ifdef THORVG_WG_RASTER_SUPPORT
     static WGPUInstance instance{};
     static WGPUAdapter adapter{};
     static WGPUDevice device{};
 #endif
+
+const uint32_t maxY = 9560;
 
 void init()
 {
@@ -246,11 +260,14 @@ public:
 
         animation->picture()->size(&psize[0], &psize[1]);
 
-        /* need to reset size to calculate scale in Picture.size internally before calling resize() */
+        // /* need to reset size to calculate scale in Picture.size internally before calling resize() */
         this->width = 0;
         this->height = 0;
 
         resize(width, height);
+
+        // if (mimetype == "tvg") {
+        // }
 
         if (canvas->push(cast(animation->picture())) != Result::Success) {
             errorMsg = "push() fail";
@@ -262,6 +279,32 @@ public:
         return true;
     }
 
+    void initAnim() {
+        if (!initialized) {
+            initialized = true;
+            if (auto paint = animation->picture()->paint(99910)) {
+                page2 = (Picture*)paint;
+                // cout << "page2 duration: " << page2->duration() << endl;
+                // float w, h;
+                // page2->size(&w, &h);
+                // cout << "page2 size: " << w << " " << h << endl;
+            }
+            if (auto paint = animation->picture()->paint(99911)) {
+                page6 = (Picture*)paint;
+            }
+            if (auto paint = animation->picture()->paint(99912)) {
+                page7 = (Picture*)paint;
+            }
+            if (auto paint = animation->picture()->paint(99913)) {
+                page8 = (Picture*)paint;
+            }
+            if (auto paint = animation->picture()->paint(99914)) {
+                page9 = (Shape*)paint;
+                page9->fill(rand() % 255, rand() % 255, rand() % 255);
+            }
+        }
+    }
+
     val render()
     {
         errorMsg = NoError;
@@ -270,10 +313,12 @@ public:
 
         if (!updated) return engine->output(width, height);
 
-        if (canvas->draw() != Result::Success) {
-            errorMsg = "draw() fail";
-            return val(typed_memory_view<uint8_t>(0, nullptr));
-        }
+        // if (canvas->draw() != Result::Success) {
+        //     errorMsg = "draw() fail";
+        //     return val(typed_memory_view<uint8_t>(0, nullptr));
+        // }
+
+        canvas->draw();
 
         canvas->sync();
 
@@ -328,19 +373,51 @@ public:
 
         engine->resize(canvas.get(), width, height);
 
-        float scale;
-        float shiftX = 0.0f, shiftY = 0.0f;
-        if (psize[0] > psize[1]) {
-            scale = width / psize[0];
-            shiftY = (height - psize[1] * scale) * 0.5f;
-        } else {
-            scale = height / psize[1];
-            shiftX = (width - psize[0] * scale) * 0.5f;
-        }
-        animation->picture()->scale(scale);
-        animation->picture()->translate(shiftX, shiftY);
+        // float scale;
+        // float shiftX = 0.0f, shiftY = 0.0f;
+        // if (psize[0] > psize[1]) {
+        //     scale = width / psize[0];
+        //     shiftY = (height - psize[1] * scale) * 0.5f;
+        // } else {
+        //     scale = height / psize[1];
+        //     shiftX = (width - psize[0] * scale) * 0.5f;
+        // }
+        // animation->picture()->scale(scale);
+        // animation->picture()->translate(0, 1000);
 
         updated = true;
+    }
+
+    void translate(float x, float y)
+    {
+        if (!canvas || !animation) return;
+        canvas->sync();
+        animation->picture()->translate(x, y);
+        canvas->update();
+        updated = true;
+    }
+
+    bool scroll(int x, int y)
+    {
+        if (!canvas || !animation) return false;
+        // canvas->sync();
+
+#define SCROLL_SPEED 80
+        dy += y * SCROLL_SPEED;
+
+        if (dy < 0) dy = 0;
+        if (dy > maxY) dy = maxY;
+        
+        cout << "dx: " << dx << endl;
+        cout << "dy: " << dy << endl;
+
+        animation->picture()->translate((float)dx, (float)-dy);
+
+        
+        // canvas->update();
+        updated = true;
+
+        return true;
     }
 
     // Saver methods
@@ -446,12 +523,53 @@ public:
         return true;
     }
 
+    void frame2(int frameNo) {
+        page2->frame(frameNo);
+        updated = true;
+    }
+
+    void frameAllAnimation(int elapsed) {
+        if (page2) {
+            auto progress = tvgProgress(elapsed, page2->duration());
+            page2->frame(page2->totalFrame() * progress);
+        }
+
+        if (page6) {
+            auto progress = tvgProgress(elapsed, page6->duration());
+            page6->frame(page6->totalFrame() * progress);
+        }
+
+        if (page7) {
+            auto progress = tvgProgress(elapsed, page7->duration());
+            page7->frame(page7->totalFrame() * progress);
+        }
+
+        if (page8) {
+            auto progress = tvgProgress(elapsed, page8->duration());
+            page8->frame(page8->totalFrame() * progress);
+        }
+
+        if (page9) {
+            page9->fill(rand() % 255, rand() % 255, rand() % 255);
+        }
+
+        // canvas->update();
+        updated = true;
+    }
+
     // TODO: Advanced APIs wrt Interactivity & theme methods...
 
 private:
     string                 errorMsg;
     unique_ptr<Canvas>     canvas = nullptr;
     unique_ptr<Animation>  animation = nullptr;
+    Picture*   page2 = nullptr;
+    Picture*   page6 = nullptr;
+    Picture*   page7 = nullptr;
+    Picture*   page8 = nullptr;
+    Shape*     page9 = nullptr;
+    bool initialized = false;
+    int dx = 0, dy = 0;
     TvgEngineMethod*       engine = nullptr;
     string                 data;
     uint32_t               width = 0;
@@ -478,5 +596,9 @@ EMSCRIPTEN_BINDINGS(thorvg_bindings)
         .function("frame", &TvgLottieAnimation ::frame)
         .function("viewport", &TvgLottieAnimation ::viewport)
         .function("resize", &TvgLottieAnimation ::resize)
+        .function("scroll", &TvgLottieAnimation ::scroll)
+        .function("translate", &TvgLottieAnimation ::translate)
+        .function("frameAllAnimation", &TvgLottieAnimation ::frameAllAnimation)
+        .function("initAnim", &TvgLottieAnimation ::initAnim)
         .function("save", &TvgLottieAnimation ::save);
 }

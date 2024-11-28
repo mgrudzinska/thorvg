@@ -23,6 +23,8 @@
 #include "tvgPaint.h"
 #include "tvgPicture.h"
 #include "tvgFrameModule.h"
+#include <iostream>
+using namespace std;
 
 /************************************************************************/
 /* Internal Class Implementation                                        */
@@ -220,6 +222,10 @@ const Paint* Picture::paint(uint32_t id) noexcept
     auto cb = [](const tvg::Paint* paint, void* data) -> bool
     {
         auto p = static_cast<Value*>(data);
+        if (paint->id > 0) {
+          // cout << "paint id: " << paint->id << endl;
+          // cout << "p->id: " << p->id << endl;
+        }
         if (p->id == paint->id) {
             p->ret = paint;
             return false;

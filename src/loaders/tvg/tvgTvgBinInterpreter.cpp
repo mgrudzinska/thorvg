@@ -33,6 +33,8 @@
 #include "tvgTvgCommon.h"
 #include "tvgShape.h"
 #include "tvgFill.h"
+#include <iostream>
+using namespace std;
 
 
 /************************************************************************/
@@ -495,6 +497,7 @@ static Paint* _parsePaint(TvgBinBlock baseBlock)
         }
         case TVG_TAG_CLASS_JSON: {
             paint = Picture::gen().release();
+            cout << "json paint" << endl;
             parser = _parseJson;
             break;
         }
