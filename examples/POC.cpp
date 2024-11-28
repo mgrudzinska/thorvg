@@ -192,13 +192,23 @@ struct UserExample : tvgexam::Example
             picture->scale(1.164f);
             page->push(std::move(picture));
 
+            //bg
+            {
+                auto bg = Shape::gen();
+                bg->appendRect(654, 200, 652, 540);
+                bg->fill(255, 255, 255);
+                page->push(std::move(bg));           
+            }
+
             //lottie
             {
                 page6 = unique_ptr<tvg::Animation>(tvg::Animation::gen());
                 auto picture = page6->picture();
                 picture->load(EXAMPLE_DIR"/poc/page6.json");
-                picture->translate(652, 200);
-                picture->size(655, 540);
+                picture->translate(654, 250);
+                picture->scale(1.0545);
+                //picture->size(655, 540);
+                
                 page->push(tvg::cast(picture));
             }
 

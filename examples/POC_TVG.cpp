@@ -34,12 +34,12 @@ struct UserExample : tvgexam::Example
     int dx = 0, dy = 0;
     Picture* picture = nullptr;
     bool initialized = false;
-    Picture* page2 = nullptr;
+    Picture* page3 = nullptr;
     Picture* page6 = nullptr;
     Picture* page7 = nullptr;
     Picture* page8 = nullptr;
     Picture* page9 = nullptr;
-    uint32_t maxY = 8650;
+    uint32_t maxY = 8350;
 
     bool content(Canvas* canvas, uint32_t w, uint32_t h) override
     {
@@ -56,7 +56,7 @@ struct UserExample : tvgexam::Example
             initialized = true;
 
             if (auto paint = picture->paint(99910)) {
-                page2 = (Picture*)paint;
+                page3 = (Picture*)paint;
             }
             if (auto paint = picture->paint(99911)) {
                 page6 = (Picture*)paint;
@@ -94,7 +94,7 @@ struct UserExample : tvgexam::Example
 
     bool page(Canvas* canvas, int direction) override
     {
-#define PAGE_SIZE 1000
+#define PAGE_SIZE 1500
 
         dy -= direction * PAGE_SIZE;
 
@@ -109,8 +109,8 @@ struct UserExample : tvgexam::Example
     bool update(tvg::Canvas* canvas, uint32_t elapsed) override
     {
         {
-            auto progress = tvgexam::progress(elapsed, page2->duration());
-            page2->frame(page2->totalFrame() * progress);
+            auto progress = tvgexam::progress(elapsed, page3->duration());
+            page3->frame(page3->totalFrame() * progress);
         }
 
         {
@@ -129,7 +129,7 @@ struct UserExample : tvgexam::Example
         }
 
         {
-            auto progress = tvgexam::progress(elapsed, page8->duration());
+            auto progress = tvgexam::progress(elapsed, page9->duration());
             page9->frame(page9->totalFrame() * progress);
         }
 
