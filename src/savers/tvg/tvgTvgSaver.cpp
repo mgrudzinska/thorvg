@@ -597,13 +597,13 @@ TvgBinCounter TvgSaver::serializeShape(const Shape* shape, const Matrix* pTransf
 /* Picture has either a vector scene or a bitmap. */
 TvgBinCounter TvgSaver::serializePicture(const Picture* picture, const Matrix* pTransform, const Matrix* cTransform)
 {
-    if (P(picture)->jsonPath) {
-        auto jsonPath = P(picture)->jsonPath;
+    if (P(picture)->jsonData) {
+        auto jsonData = P(picture)->jsonData;
 
         writeTag(TVG_TAG_CLASS_JSON);
         reserveCount();
 
-        TvgBinCounter cnt = writeTagProperty(TVG_TAG_JSON_DATA, strlen(jsonPath), jsonPath);
+        TvgBinCounter cnt = writeTagProperty(TVG_TAG_JSON_DATA, strlen(jsonData), jsonData);
         cnt += writeTransform(cTransform, TVG_TAG_PAINT_TRANSFORM);
         cnt += writeTagProperty(TVG_TAG_PAINT_ID, SIZE(id), &id);
         id++;

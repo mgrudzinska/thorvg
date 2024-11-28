@@ -443,10 +443,10 @@ static bool _parseJson(TvgBinBlock block, Paint* paint)
 
     switch (block.type) {
         case TVG_TAG_JSON_DATA: {
-            auto jsonPath = (char*)malloc(block.length + 1);
-            memcpy(jsonPath, ptr, block.length);
-            jsonPath[block.length] = '\0';
-            picture->load(jsonPath);
+            auto jsonData = (char*)malloc(block.length + 1);
+            memcpy(jsonData, ptr, block.length);
+            jsonData[block.length] = '\0';
+            picture->load(jsonData, block.length + 1, "lottie", false);
             return true;
         }
         case TVG_TAG_PAINT_TRANSFORM: {
