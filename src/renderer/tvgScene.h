@@ -257,6 +257,41 @@ struct Scene::Impl
     }
 
     Result resetEffects();
+
+    Result push(SceneEffect effect, va_list& args)
+    {
+        if (effect == SceneEffect::ClearAll) return resetEffects();
+
+        if (!this->effects) this->effects = new Array<RenderEffect*>;
+
+        RenderEffect* re = nullptr;
+
+        switch (effect) {
+            case SceneEffect::GaussianBlur: {
+                re = RenderEffectGaussianBlur::gen(args);
+                break;
+            }
+            case SceneEffect::DropShadow: {
+                re = RenderEffectDropShadow::gen(args);
+                break;
+            }
+            case SceneEffect::Fill: {
+                re = RenderEffectFill::gen(args);
+                break;
+            }
+            case SceneEffect::Tint: {
+                re = RenderEffectTint::gen(args);
+                break;
+            }
+            default: break;
+        }
+
+        if (!re) return Result::InvalidArguments;
+
+        this->effects->push(re);
+
+        return Result::Success;
+    }
 };
 
 #endif //_TVG_SCENE_H_
