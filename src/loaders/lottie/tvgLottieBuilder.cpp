@@ -1329,6 +1329,7 @@ void LottieBuilder::updateEffect(LottieLayer* layer, float frameNo)
                 break;
             }
             case LottieEffect::Fill: {
+                printf("MGS %s %s %d \n", __FILE__, __func__, __LINE__);
                 auto effect = static_cast<LottieFxFill*>(*ef);
                 auto color = effect->color(frameNo);
                 layer->scene->push(SceneEffect::Fill, color.rgb[0], color.rgb[1], color.rgb[2], (int)(255.0f *effect->opacity(frameNo)));

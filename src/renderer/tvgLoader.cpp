@@ -74,33 +74,42 @@ static Inlist<LoadModule> _activeLoaders;
 
 static LoadModule* _find(FileType type)
 {
+
+    printf("MGS %s %s %d   typ %d\n", __FILE__, __func__, __LINE__, (int)type);
     switch(type) {
         case FileType::Png: {
+                printf("MGS %s %s %d \n", __FILE__, __func__, __LINE__);
 #ifdef THORVG_PNG_LOADER_SUPPORT
             return new PngLoader;
 #endif
             break;
         }
         case FileType::Jpg: {
+                printf("MGS %s %s %d \n", __FILE__, __func__, __LINE__);
 #ifdef THORVG_JPG_LOADER_SUPPORT
             return new JpgLoader;
 #endif
             break;
         }
         case FileType::Webp: {
+                printf("MGS %s %s %d \n", __FILE__, __func__, __LINE__);
 #ifdef THORVG_WEBP_LOADER_SUPPORT
             return new WebpLoader;
 #endif
             break;
         }
         case FileType::Tvg: {
+                printf("MGS %s %s %d \n", __FILE__, __func__, __LINE__);
 #ifdef THORVG_TVG_LOADER_SUPPORT
             return new TvgLoader;
 #endif
             break;
         }
         case FileType::Svg: {
+                printf("MGS %s %s %d \n", __FILE__, __func__, __LINE__);
 #ifdef THORVG_SVG_LOADER_SUPPORT
+
+            printf("MGS %s %s %d \n", __FILE__, __func__, __LINE__);
             return new SvgLoader;
 #endif
             break;
@@ -112,7 +121,11 @@ static LoadModule* _find(FileType type)
             break;
         }
         case FileType::Lottie: {
+
+            printf("MGS %s %s %d \n", __FILE__, __func__, __LINE__);
 #ifdef THORVG_LOTTIE_LOADER_SUPPORT
+
+            printf("MGS %s %s %d \n", __FILE__, __func__, __LINE__);
             return new LottieLoader;
 #endif
             break;
@@ -175,7 +188,10 @@ static LoadModule* _find(FileType type)
 #ifdef THORVG_FILE_IO_SUPPORT
 static LoadModule* _findByPath(const string& path)
 {
+                printf("MGS %s %s %d   path| %s|\n", __FILE__, __func__, __LINE__, path.c_str());
     auto ext = path.substr(path.find_last_of(".") + 1);
+
+    printf("MGS %s %s %d   EXT |%s|\n", __FILE__, __func__, __LINE__, ext.c_str());
     if (!ext.compare("tvg")) return _find(FileType::Tvg);
     if (!ext.compare("svg")) return _find(FileType::Svg);
     if (!ext.compare("json")) return _find(FileType::Lottie);
@@ -193,6 +209,7 @@ static FileType _convert(const string& mimeType)
 {
     auto type = FileType::Unknown;
 
+    printf("MGS %s %s %d  mime |%s|\n", __FILE__, __func__, __LINE__, mimeType.c_str());
     if (mimeType == "tvg") type = FileType::Tvg;
     else if (mimeType == "svg" || mimeType == "svg+xml") type = FileType::Svg;
     else if (mimeType == "ttf" || mimeType == "otf") type = FileType::Ttf;

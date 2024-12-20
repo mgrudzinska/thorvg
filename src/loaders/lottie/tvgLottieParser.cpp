@@ -1382,6 +1382,8 @@ void LottieParser::parseDropShadow(LottieFxDropShadow* effect)
 
 void LottieParser::parseEffect(LottieEffect* effect)
 {
+
+    printf("MGS %s %s %d \n", __FILE__, __func__, __LINE__);
     switch (effect->type) {
         case LottieEffect::Tint: {
             parseTint(static_cast<LottieFxTint*>(effect));
@@ -1410,6 +1412,8 @@ void LottieParser::parseEffect(LottieEffect* effect)
 
 void LottieParser::parseEffects(LottieLayer* layer)
 {
+
+    printf("MGS %s %s %d \n", __FILE__, __func__, __LINE__);
     enterArray();
     while (nextArrayValue()) {
         LottieEffect* effect = nullptr;
