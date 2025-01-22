@@ -209,7 +209,7 @@ struct Shape::Impl : Paint::Impl
         renderFlag |= RenderUpdateFlag::Stroke;
     }
 
-    void strokeTrim(float begin, float end, bool simultaneous)
+    void strokeTrim(float begin, float end, bool simultaneous, bool fillTrim = false)
     {
         if (!rs.stroke) {
             if (begin == 0.0f && end == 1.0f) return;
@@ -222,6 +222,11 @@ struct Shape::Impl : Paint::Impl
         rs.stroke->trim.end = end;
         rs.stroke->trim.simultaneous = simultaneous;
         renderFlag |= RenderUpdateFlag::Stroke;
+
+        if (fillTrim) {
+            rs.fillTrim = true;
+            renderFlag |= RenderUpdateFlag::Path;
+        }
     }
 
     bool strokeTrim(float* begin, float* end)
@@ -462,6 +467,7 @@ struct Shape::Impl : Paint::Impl
         //Fill
         if (rs.fill) dup->rs.fill = rs.fill->duplicate();
         else dup->rs.fill = nullptr;
+        dup->rs.fillTrim = rs.fillTrim;
 
         return shape;
     }
@@ -480,6 +486,7 @@ struct Shape::Impl : Paint::Impl
 
         delete(rs.fill);
         rs.fill = nullptr;
+        rs.fillTrim = false;
     }
 
     Iterator* iterator()

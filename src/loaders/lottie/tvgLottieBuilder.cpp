@@ -863,7 +863,7 @@ void LottieBuilder::updateTrimpath(TVG_UNUSED LottieGroup* parent, LottieObject*
         end = (length * end) + pbegin;
     }
 
-    ctx->propagator->strokeTrim(begin, end, trimpath->type == LottieTrimpath::Type::Simultaneous);
+    SHAPE(ctx->propagator)->strokeTrim(begin, end, trimpath->type == LottieTrimpath::Type::Simultaneous, true);
     ctx->merging = nullptr;
 }
 
