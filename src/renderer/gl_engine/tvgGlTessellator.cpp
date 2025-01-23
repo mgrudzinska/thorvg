@@ -853,14 +853,37 @@ Tessellator::~Tessellator()
 
 bool Tessellator::tessellate(const RenderShape *rshape, bool antialias)
 {
-    auto cmds = rshape->path.cmds.data;
-    auto cmdCnt = rshape->path.cmds.count;
-    auto pts = rshape->path.pts.data;
-    auto ptsCnt = rshape->path.pts.count;
+    PathCommand *cmds, *trimmedCmds = nullptr;
+    Point *pts, *trimmedPts = nullptr;
+    uint32_t cmdCnt = 0, ptsCnt = 0;
+
+    if (rshape->fillTrim) {
+        Array<PathCommand> trimmedCmdsArr;
+        Array<Point> trimmedPtsArr;
+
+        if (!rshape->stroke->trim.trim(rshape->path.cmds, rshape->path.pts, trimmedCmdsArr, trimmedPtsArr)) return false;
+
+        cmds = trimmedCmds = trimmedCmdsArr.data;
+        cmdCnt = trimmedCmdsArr.count;
+        pts = trimmedPts = trimmedPtsArr.data;
+        ptsCnt = trimmedPtsArr.count;
+
+        trimmedCmdsArr.data = nullptr;
+        trimmedPtsArr.data = nullptr;
+    } else {
+        cmds = rshape->path.cmds.data;
+        cmdCnt = rshape->path.cmds.count;
+        pts = rshape->path.pts.data;
+        ptsCnt = rshape->path.pts.count;
+    }
 
     this->fillRule = rshape->rule;
 
     this->visitShape(cmds, cmdCnt, pts, ptsCnt);
+
+    free(trimmedCmds);
+    free(trimmedPts);
+
     this->buildMesh();
     this->mergeVertices();
 
@@ -889,12 +912,35 @@ void Tessellator::tessellate(const Array<const RenderShape *> &shapes)
     this->fillRule = FillRule::NonZero;
 
     for (uint32_t i = 0; i < shapes.count; i++) {
-        auto cmds = shapes[i]->path.cmds.data;
-        auto cmdCnt = shapes[i]->path.cmds.count;
-        auto pts = shapes[i]->path.pts.data;
-        auto ptsCnt = shapes[i]->path.pts.count;
+        PathCommand *cmds, *trimmedCmds = nullptr;
+        Point *pts, *trimmedPts = nullptr;
+        uint32_t cmdCnt = 0, ptsCnt = 0;
+
+        auto& rshape = shapes[i];
+        if (rshape->fillTrim) {
+            Array<PathCommand> trimmedCmdsArr;
+            Array<Point> trimmedPtsArr;
+
+            if (!rshape->stroke->trim.trim(rshape->path.cmds, rshape->path.pts, trimmedCmdsArr, trimmedPtsArr)) continue;
+
+            cmds = trimmedCmds = trimmedCmdsArr.data;
+            cmdCnt = trimmedCmdsArr.count;
+            pts = trimmedPts = trimmedPtsArr.data;
+            ptsCnt = trimmedPtsArr.count;
+
+            trimmedCmdsArr.data = nullptr;
+            trimmedPtsArr.data = nullptr;
+        } else {
+            cmds = rshape->path.cmds.data;
+            cmdCnt = rshape->path.cmds.count;
+            pts = rshape->path.pts.data;
+            ptsCnt = rshape->path.pts.count;
+        }
 
         this->visitShape(cmds, cmdCnt, pts, ptsCnt);
+
+        free(trimmedCmds);
+        free(trimmedPts);
     }
 
     this->buildMesh();
@@ -2151,12 +2197,35 @@ BWTessellator::BWTessellator(Array<float>* points, Array<uint32_t>* indices): mR
 
 void BWTessellator::tessellate(const RenderShape *rshape, const Matrix& matrix)
 {
-    auto cmds = rshape->path.cmds.data;
-    auto cmdCnt = rshape->path.cmds.count;
-    auto pts = rshape->path.pts.data;
-    auto ptsCnt = rshape->path.pts.count;
+    PathCommand *cmds, *trimmedCmds = nullptr;
+    Point *pts, *trimmedPts = nullptr;
+    uint32_t cmdCnt = 0, ptsCnt = 0;
 
-    if (ptsCnt <= 2) return;
+    if (rshape->fillTrim) {
+        Array<PathCommand> trimmedCmdsArr;
+        Array<Point> trimmedPtsArr;
+
+        if (!rshape->stroke->trim.trim(rshape->path.cmds, rshape->path.pts, trimmedCmdsArr, trimmedPtsArr)) return;
+
+        cmds = trimmedCmds = trimmedCmdsArr.data;
+        cmdCnt = trimmedCmdsArr.count;
+        pts = trimmedPts = trimmedPtsArr.data;
+        ptsCnt = trimmedPtsArr.count;
+
+        trimmedCmdsArr.data = nullptr;
+        trimmedPtsArr.data = nullptr;
+    } else {
+        cmds = rshape->path.cmds.data;
+        cmdCnt = rshape->path.cmds.count;
+        pts = rshape->path.pts.data;
+        ptsCnt = rshape->path.pts.count;
+    }
+
+    if (ptsCnt <= 2) {
+        free(trimmedCmds);
+        free(trimmedPts);
+        return;
+    }
 
     uint32_t firstIndex = 0;
     uint32_t prevIndex = 0;
@@ -2215,6 +2284,8 @@ void BWTessellator::tessellate(const RenderShape *rshape, const Matrix& matrix)
                 break;
         }
     }
+    free(trimmedCmds);
+    free(trimmedPts);
 }
 
 
