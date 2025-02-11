@@ -209,7 +209,7 @@ struct Shape::Impl : Paint::Impl
         renderFlag |= RenderUpdateFlag::Stroke;
     }
 
-    void strokeTrim(float begin, float end, bool simultaneous)
+    void trimpath(float begin, float end, bool simultaneous)
     {
         //Even if there is no trimming effect, begin can still affect dashing starting point
         if (fabsf(end - begin) >= 1.0f) end = begin + 1.0f;
@@ -227,7 +227,7 @@ struct Shape::Impl : Paint::Impl
         renderFlag |= RenderUpdateFlag::Stroke;
     }
 
-    bool strokeTrim(float* begin, float* end)
+    bool trimpath(float* begin, float* end)
     {
         if (rs.stroke) {
             if (begin) *begin = rs.stroke->trim.begin;

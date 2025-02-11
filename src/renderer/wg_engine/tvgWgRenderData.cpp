@@ -386,7 +386,7 @@ void WgRenderDataShape::updateMeshes(WgContext& context, const RenderShape &rsha
     WgVertexBuffer pbuff;
     pbuff.reset(scale);
 
-    if (rshape.strokeTrim()) {
+    if (rshape.trimpath()) {
         WgVertexBuffer trimbuff;
         trimbuff.reset(scale);
 
