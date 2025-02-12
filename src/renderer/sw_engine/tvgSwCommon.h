@@ -211,6 +211,7 @@ struct SwDashStroke
 
 struct SwShape
 {
+    RenderPath*  trimmedPath = nullptr;
     SwOutline*   outline = nullptr;
     SwStroke*    stroke = nullptr;
     SwFill*      fill = nullptr;
@@ -288,7 +289,8 @@ struct SwMpool
 {
     SwOutline* outline;
     SwOutline* strokeOutline;
-    SwOutline* dashOutline; //Trimming treated as a special case of dashing
+    SwOutline* dashOutline;
+    RenderPath* path;
     unsigned allocSize;
 };
 
@@ -508,6 +510,7 @@ bool shapePrepare(SwShape* shape, const RenderShape* rshape, const Matrix& trans
 bool shapePrepared(const SwShape* shape);
 bool shapeGenRle(SwShape* shape, const RenderShape* rshape, bool antiAlias);
 void shapeDelOutline(SwShape* shape, SwMpool* mpool, uint32_t tid);
+void shapeDelTrimmedPath(SwShape* shape, SwMpool* mpool, uint32_t tid);
 void shapeResetStroke(SwShape* shape, const RenderShape* rshape, const Matrix& transform);
 bool shapeGenStrokeRle(SwShape* shape, const RenderShape* rshape, const Matrix& transform, const SwBBox& clipRegion, SwBBox& renderRegion, SwMpool* mpool, unsigned tid);
 void shapeFree(SwShape* shape);
@@ -565,6 +568,8 @@ SwOutline* mpoolReqStrokeOutline(SwMpool* mpool, unsigned idx);
 void mpoolRetStrokeOutline(SwMpool* mpool, unsigned idx);
 SwOutline* mpoolReqDashOutline(SwMpool* mpool, unsigned idx);
 void mpoolRetDashOutline(SwMpool* mpool, unsigned idx);
+RenderPath* mpoolReqPath(SwMpool* mpool, unsigned idx);
+void mpoolRetPath(SwMpool* mpool, unsigned idx);
 
 bool rasterCompositor(SwSurface* surface);
 bool rasterGradientShape(SwSurface* surface, SwShape* shape, const Fill* fdata, uint8_t opacity);

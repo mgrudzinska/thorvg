@@ -169,6 +169,7 @@ struct SwShapeTask : SwTask
 
         //Clear current task memorypool here if the clippers would use the same memory pool
         shapeDelOutline(&shape, mpool, tid);
+        shapeDelTrimmedPath(&shape, mpool, tid);
 
         //Clip Path
         ARRAY_FOREACH(p, clips) {
@@ -186,6 +187,7 @@ struct SwShapeTask : SwTask
         bbox.reset();
         shapeReset(&shape);
         shapeDelOutline(&shape, mpool, tid);
+        shapeDelTrimmedPath(&shape, mpool, tid);
     }
 
     void dispose() override

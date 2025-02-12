@@ -77,6 +77,18 @@ void mpoolRetDashOutline(SwMpool* mpool, unsigned idx)
 }
 
 
+RenderPath* mpoolReqPath(SwMpool* mpool, unsigned idx)
+{
+    return &mpool->path[idx];
+}
+
+
+void mpoolRetPath(SwMpool* mpool, unsigned idx)
+{
+    mpool->path[idx].clear();
+}
+
+
 SwMpool* mpoolInit(uint32_t threads)
 {
     auto allocSize = threads + 1;
@@ -85,6 +97,7 @@ SwMpool* mpoolInit(uint32_t threads)
     mpool->outline = static_cast<SwOutline*>(calloc(1, sizeof(SwOutline) * allocSize));
     mpool->strokeOutline = static_cast<SwOutline*>(calloc(1, sizeof(SwOutline) * allocSize));
     mpool->dashOutline = static_cast<SwOutline*>(calloc(1, sizeof(SwOutline) * allocSize));
+    mpool->path = static_cast<RenderPath*>(calloc(1, sizeof(RenderPath) * allocSize));
     mpool->allocSize = allocSize;
 
     return mpool;
@@ -108,6 +121,9 @@ bool mpoolClear(SwMpool* mpool)
         mpool->dashOutline[i].cntrs.reset();
         mpool->dashOutline[i].types.reset();
         mpool->dashOutline[i].closed.reset();
+
+        mpool->path[i].pts.reset();
+        mpool->path[i].cmds.reset();
     }
 
     return true;
@@ -123,6 +139,7 @@ bool mpoolTerm(SwMpool* mpool)
     free(mpool->outline);
     free(mpool->strokeOutline);
     free(mpool->dashOutline);
+    free(mpool->path);
     free(mpool);
 
     return true;
