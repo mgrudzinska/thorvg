@@ -206,6 +206,7 @@ static LoadModule* _findFromCache(const char* filename)
 
     INLIST_FOREACH(_activeLoaders, loader) {
         if (loader->pathcache && !strcmp(loader->hashpath, filename)) {
+            printf("\t ZNALAZLAM \n");
             ++loader->sharing;
             return loader;
         }
@@ -231,6 +232,22 @@ static LoadModule* _findFromCache(const char* data, uint32_t size, const char* m
     return nullptr;
 }
 
+
+static bool _match(const char* path, const char* fontName)
+{
+    printf("MGS START -------------- %s %s  \n", path, fontName);
+    auto name = (const char*)strrchr(path, '/');
+#ifdef _WIN32
+    nanme = strrchr(path, '\\');
+#endif
+    name = name ? name + 1 : path;
+
+    auto ext = (const char*)strrchr(path, '.');
+    auto len = ext ? ext - name : 0;
+
+    printf("MGS -------------- %s %s %lu %lu \n", path, fontName, len, strlen(fontName));
+    return len > 0 ? !strncmp(name, fontName, len) : !strcmp(name, fontName);
+}
 
 /************************************************************************/
 /* External Class Implementation                                        */
@@ -329,8 +346,9 @@ bool LoaderMgr::retrieve(const char* filename)
 
 LoadModule* LoaderMgr::loader(const char* key)
 {
+    printf("MGS %s %s %d     |%s|\n", __FILE__, __func__, __LINE__, key);
     INLIST_FOREACH(_activeLoaders, loader) {
-        if (loader->pathcache && strstr(loader->hashpath, key)) {
+        if (loader->pathcache && _match(loader->hashpath, key)) {
             ++loader->sharing;
             return loader;
         }

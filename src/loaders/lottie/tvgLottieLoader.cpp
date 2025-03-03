@@ -238,6 +238,7 @@ bool LottieLoader::open(const char* path)
     fclose(f);
 
     this->dirName = strDirname(path);
+    printf("|%s| |%s| \n", path, dirName);
     this->content = content;
     this->copy = true;
 
