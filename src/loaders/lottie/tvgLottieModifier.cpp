@@ -33,6 +33,15 @@ static bool _colinear(const Point* p)
 }
 
 
+static void _pushDegeneratedCubic(Array<PathCommand>& cmds, Array<Point>& pts, const Point& p)
+{
+    cmds.push(PathCommand::CubicTo);
+    pts.push(pts.last());
+    pts.push(p);
+    pts.push(p);
+}
+
+
 static void _roundCorner(Array<PathCommand>& cmds, Array<Point>& pts, Point& prev, Point& curr, Point& next, float r)
 {
     auto lenPrev = length(prev - curr);
@@ -43,11 +52,10 @@ static void _roundCorner(Array<PathCommand>& cmds, Array<Point>& pts, Point& pre
     auto dPrev = rPrev * (curr - prev);
     auto dNext = rNext * (curr - next);
 
-    pts.push(curr - 2.0f * dPrev);
+    _pushDegeneratedCubic(cmds, pts, curr - 2.0f * dPrev);
     pts.push(curr - dPrev);
     pts.push(curr - dNext);
     pts.push(curr - 2.0f * dNext);
-    cmds.push(PathCommand::LineTo);
     cmds.push(PathCommand::CubicTo);
 }
 
@@ -109,9 +117,9 @@ void LottieOffsetModifier::corner(RenderPath& out, Line& line, Line& nextLine, u
     if (_intersect(line, nextLine, intersect, inside)) {
         if (inside) {
             if (nextClose) out.pts[movetoOutIndex] = intersect;
-            out.pts.push(intersect);
+            _pushDegeneratedCubic(out.cmds, out.pts, intersect);
         } else {
-            out.pts.push(line.pt2);
+            _pushDegeneratedCubic(out.cmds, out.pts, line.pt2);
             if (join == StrokeJoin::Round) {
                 out.cmds.push(PathCommand::CubicTo);
                 out.pts.push((line.pt2 + intersect) * 0.5f);
@@ -121,15 +129,12 @@ void LottieOffsetModifier::corner(RenderPath& out, Line& line, Line& nextLine, u
                 auto norm = normal(line.pt1, line.pt2);
                 auto nextNorm = normal(nextLine.pt1, nextLine.pt2);
                 auto miterDirection = (norm + nextNorm) / length(norm + nextNorm);
-                out.cmds.push(PathCommand::LineTo);
-                if (1.0f <= miterLimit * fabsf(miterDirection.x * norm.x + miterDirection.y * norm.y)) out.pts.push(intersect);
-                else out.pts.push(nextLine.pt1);
+                _pushDegeneratedCubic(out.cmds, out.pts, 1.0f <= miterLimit * fabsf(miterDirection.x * norm.x + miterDirection.y * norm.y) ? intersect : nextLine.pt1);
             } else {
-                out.cmds.push(PathCommand::LineTo);
-                out.pts.push(nextLine.pt1);
+                _pushDegeneratedCubic(out.cmds, out.pts, nextLine.pt1);
             }
         }
-    } else out.pts.push(line.pt2);
+    } else _pushDegeneratedCubic(out.cmds, out.pts, line.pt2);
 }
 
 
@@ -154,10 +159,8 @@ void LottieOffsetModifier::line(RenderPath& out, PathCommand* inCmds, uint32_t i
         return inCmds[cmd] == PathCommand::CubicTo && !tvg::zero(inPts[pt] - inPts[pt + 1]) && !tvg::zero(inPts[pt + 2] - inPts[pt + 3]);
     };
 
-    out.cmds.push(PathCommand::LineTo);
-
     if (curCmd + 1 == inCmdsCnt || inCmds[curCmd + 1] == PathCommand::MoveTo || nonDegeneratedCubic(curCmd + 1, curPt + degenerated)) {
-        out.pts.push(state.line.pt2);
+        _pushDegeneratedCubic(out.cmds, out.pts, state.line.pt2);
         ++curPt;
         return;
     }
@@ -180,9 +183,8 @@ void LottieOffsetModifier::line(RenderPath& out, PathCommand* inCmds, uint32_t i
 
 bool LottieRoundnessModifier::modifyPath(PathCommand* inCmds, uint32_t inCmdsCnt, Point* inPts, uint32_t inPtsCnt, Matrix* transform, RenderPath& out)
 {
-    buffer->clear();
-
-    auto& path = (next) ? *buffer : out;
+    auto& path = next ? (inCmds == buffer[0].cmds.data ? buffer[1] : buffer[0]) : out;
+    if (next) path.clear();
 
     path.cmds.reserve(inCmdsCnt * 2);
     path.pts.reserve((uint32_t)(inPtsCnt * 1.5));
@@ -205,7 +207,8 @@ bool LottieRoundnessModifier::modifyPath(PathCommand* inCmds, uint32_t inCmdsCnt
                         _roundCorner(path.cmds, path.pts, prev, curr, inPts[iPts + 5], r);
                         iPts += 3;
                         break;
-                    } else if (inCmds[iCmds + 1] == PathCommand::Close) {
+                    }
+                    if (inCmds[iCmds + 1] == PathCommand::Close) {
                         _roundCorner(path.cmds, path.pts, prev, curr, inPts[2], r);
                         path.pts[startIndex] = path.pts.last();
                         iPts += 3;
@@ -241,9 +244,8 @@ bool LottieRoundnessModifier::modifyPolystar(RenderPath& in, RenderPath& out, fl
 {
     constexpr auto ROUNDED_POLYSTAR_MAGIC_NUMBER = 0.47829f;
 
-    buffer->clear();
-
-    auto& path = (next) ? *buffer : out;
+    auto& path = next ? (&in == &buffer[0] ? buffer[1] : buffer[0]) : out;
+    if (next) path.clear();
 
     auto len = length(in.pts[1] - in.pts[2]);
     auto r = len > 0.0f ? ROUNDED_POLYSTAR_MAGIC_NUMBER * std::min(len * 0.5f, this->r) / len : 0.0f;
@@ -320,10 +322,11 @@ bool LottieRoundnessModifier::modifyRect(Point& size, float& r)
 
 bool LottieOffsetModifier::modifyPath(PathCommand* inCmds, uint32_t inCmdsCnt, Point* inPts, uint32_t inPtsCnt, TVG_UNUSED Matrix* transform, RenderPath& out)
 {
-    if (next) TVGERR("LOTTIE", "Offset has a next modifier?");
+    auto& path = next ? (inCmds == buffer[0].cmds.data ? buffer[1] : buffer[0]) : out;
+    if (next) path.clear();
 
-    out.cmds.reserve(inCmdsCnt * 2);
-    out.pts.reserve(inPtsCnt * (join == StrokeJoin::Round ? 4 : 2));
+    path.cmds.reserve(inCmdsCnt * 2);
+    path.pts.reserve(inPtsCnt * (join == StrokeJoin::Round ? 4 : 2));
 
     Array<Bezier> stack{5};
     State state;
@@ -335,12 +338,12 @@ bool LottieOffsetModifier::modifyPath(PathCommand* inCmds, uint32_t inCmdsCnt, P
             state.moveto = true;
             state.movetoInIndex = iPt++;
         } else if (inCmds[iCmd] == PathCommand::LineTo) {
-            line(out, inCmds, inCmdsCnt, inPts, iPt, iCmd, state, offset, false);
+            line(path, inCmds, inCmdsCnt, inPts, iPt, iCmd, state, offset, false);
         } else if (inCmds[iCmd] == PathCommand::CubicTo) {
             //cubic degenerated to a line
             if (tvg::zero(inPts[iPt - 1] - inPts[iPt]) || tvg::zero(inPts[iPt + 1] - inPts[iPt + 2])) {
                 ++iPt;
-                line(out, inCmds, inCmdsCnt, inPts, iPt, iCmd, state, offset, true);
+                line(path, inCmds, inCmdsCnt, inPts, iPt, iCmd, state, offset, true);
                 ++iPt;
                 continue;
             }
@@ -363,9 +366,9 @@ bool LottieOffsetModifier::modifyPath(PathCommand* inCmds, uint32_t inCmdsCnt, P
                 auto line3 = _offset(bezier.ctrl2, bezier.end, offset);
 
                 if (state.moveto) {
-                    out.cmds.push(PathCommand::MoveTo);
-                    state.movetoOutIndex = out.pts.count;
-                    out.pts.push(line1.pt1);
+                    path.cmds.push(PathCommand::MoveTo);
+                    state.movetoOutIndex = path.pts.count;
+                    path.pts.push(line1.pt1);
                     state.firstLine = line1;
                     state.moveto = false;
                 }
@@ -383,13 +386,13 @@ bool LottieOffsetModifier::modifyPath(PathCommand* inCmds, uint32_t inCmdsCnt, P
             iPt += 3;
         }
         else {
-            if (!_zero(inPts[iPt - 1], inPts[state.movetoInIndex])) {
-                out.cmds.push(PathCommand::LineTo);
-                corner(out, state.line, state.firstLine, state.movetoOutIndex, true);
-            }
-            out.cmds.push(PathCommand::Close);
+            if (!_zero(inPts[iPt - 1], inPts[state.movetoInIndex])) corner(path, state.line, state.firstLine, state.movetoOutIndex, true);
+            path.cmds.push(PathCommand::Close);
         }
     }
+
+    if (next) return next->modifyPath(path.cmds.data, path.cmds.count, path.pts.data, path.pts.count, transform, out);
+
     return true;
 }
 
