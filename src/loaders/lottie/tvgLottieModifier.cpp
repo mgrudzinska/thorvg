@@ -33,6 +33,15 @@ static bool _colinear(const Point* p)
 }
 
 
+static void _cubic(Array<PathCommand>& cmds, Array<Point>& pts, const Point& p1, const Point& p2, const Point& p3)
+{
+    cmds.push(PathCommand::CubicTo);
+    pts.push(p1);
+    pts.push(p2);
+    pts.push(p3);
+}
+
+
 static void _roundCorner(Array<PathCommand>& cmds, Array<Point>& pts, Point& prev, Point& curr, Point& next, float r)
 {
     auto lenPrev = length(prev - curr);
@@ -43,12 +52,8 @@ static void _roundCorner(Array<PathCommand>& cmds, Array<Point>& pts, Point& pre
     auto dPrev = rPrev * (curr - prev);
     auto dNext = rNext * (curr - next);
 
-    pts.push(curr - 2.0f * dPrev);
-    pts.push(curr - dPrev);
-    pts.push(curr - dNext);
-    pts.push(curr - 2.0f * dNext);
-    cmds.push(PathCommand::LineTo);
-    cmds.push(PathCommand::CubicTo);
+    _cubic(cmds, pts, pts.last(), curr - 2.0f * dPrev, curr - 2.0f * dPrev);
+    _cubic(cmds, pts, curr - dPrev, curr - dNext, curr - 2.0f * dNext);
 }
 
 
@@ -109,30 +114,24 @@ void LottieOffsetModifier::corner(RenderPath& out, Line& line, Line& nextLine, u
     if (_intersect(line, nextLine, intersect, inside)) {
         if (inside) {
             if (nextClose) out.pts[movetoOutIndex] = intersect;
-            out.pts.push(intersect);
+            _cubic(out.cmds, out.pts, out.pts.last(), intersect, intersect);
         } else {
-            out.pts.push(line.pt2);
+            _cubic(out.cmds, out.pts, out.pts.last(), line.pt2, line.pt2);
             if (join == StrokeJoin::Round) {
-                out.cmds.push(PathCommand::CubicTo);
-                out.pts.push((line.pt2 + intersect) * 0.5f);
-                out.pts.push((nextLine.pt1 + intersect) * 0.5f);
-                out.pts.push(nextLine.pt1);
-            } else if (join == StrokeJoin::Miter) {
-                auto norm = normal(line.pt1, line.pt2);
-                auto nextNorm = normal(nextLine.pt1, nextLine.pt2);
-                auto miterDirection = (norm + nextNorm) / length(norm + nextNorm);
-                if (1.0f <= miterLimit * fabsf(miterDirection.x * norm.x + miterDirection.y * norm.y)) {
-                    out.cmds.push(PathCommand::LineTo);
-                    out.pts.push(intersect);
-                }
-                out.cmds.push(PathCommand::LineTo);
-                out.pts.push(nextLine.pt1);
+                _cubic(out.cmds, out.pts, (line.pt2 + intersect) * 0.5f, (nextLine.pt1 + intersect) * 0.5f, nextLine.pt1);
             } else {
-                out.cmds.push(PathCommand::LineTo);
-                out.pts.push(nextLine.pt1);
+                if (join == StrokeJoin::Miter) {
+                    auto norm = normal(line.pt1, line.pt2);
+                    auto nextNorm = normal(nextLine.pt1, nextLine.pt2);
+                    auto miterDirection = (norm + nextNorm) / length(norm + nextNorm);
+                    if (1.0f <= miterLimit * fabsf(miterDirection.x * norm.x + miterDirection.y * norm.y)) {
+                        _cubic(out.cmds, out.pts, out.pts.last(), intersect, intersect);
+                    }
+                }
+                _cubic(out.cmds, out.pts, out.pts.last(), nextLine.pt1, nextLine.pt1);
             }
         }
-    } else out.pts.push(line.pt2);
+    } else _cubic(out.cmds, out.pts, out.pts.last(), line.pt2, line.pt2);
 }
 
 
@@ -157,10 +156,8 @@ void LottieOffsetModifier::line(RenderPath& out, PathCommand* inCmds, uint32_t i
         return inCmds[cmd] == PathCommand::CubicTo && !tvg::zero(inPts[pt] - inPts[pt + 1]) && !tvg::zero(inPts[pt + 2] - inPts[pt + 3]);
     };
 
-    out.cmds.push(PathCommand::LineTo);
-
     if (curCmd + 1 == inCmdsCnt || inCmds[curCmd + 1] == PathCommand::MoveTo || nonDegeneratedCubic(curCmd + 1, curPt + degenerated)) {
-        out.pts.push(state.line.pt2);
+        _cubic(out.cmds, out.pts, out.pts.last(), state.line.pt2, state.line.pt2);
         ++curPt;
         return;
     }
@@ -192,10 +189,12 @@ bool LottieRoundnessModifier::modifyPath(PathCommand* inCmds, uint32_t inCmdsCnt
     auto pivot = path.pts.count;
 
     uint32_t startIndex = 0;
+    auto firstDegenerated = false;
     for (uint32_t iCmds = 0, iPts = 0; iCmds < inCmdsCnt; ++iCmds) {
         switch (inCmds[iCmds]) {
             case PathCommand::MoveTo: {
                 startIndex = path.pts.count;
+                firstDegenerated = false;
                 path.cmds.push(PathCommand::MoveTo);
                 path.pts.push(inPts[iPts++]);
                 break;
@@ -205,20 +204,20 @@ bool LottieRoundnessModifier::modifyPath(PathCommand* inCmds, uint32_t inCmdsCnt
                     auto& prev = inPts[iPts - 1];
                     auto& curr = inPts[iPts + 2];
                     if (inCmds[iCmds + 1] == PathCommand::CubicTo && _colinear(inPts + iPts + 2)) {
+                        if (iPts == 1) firstDegenerated = true;
                         _roundCorner(path.cmds, path.pts, prev, curr, inPts[iPts + 5], r);
                         iPts += 3;
                         break;
                     } else if (inCmds[iCmds + 1] == PathCommand::Close) {
                         _roundCorner(path.cmds, path.pts, prev, curr, inPts[2], r);
                         path.pts[startIndex] = path.pts.last();
+                        if (firstDegenerated) path.pts[startIndex + 1] = path.pts.last();
                         iPts += 3;
                         break;
                     }
                 }
-                path.cmds.push(PathCommand::CubicTo);
-                path.pts.push(inPts[iPts++]);
-                path.pts.push(inPts[iPts++]);
-                path.pts.push(inPts[iPts++]);
+                _cubic(path.cmds, path.pts, inPts[iPts], inPts[iPts + 1], inPts[iPts + 2]);
+                iPts += 3;
                 break;
             }
             case PathCommand::Close: {
@@ -272,12 +271,9 @@ bool LottieRoundnessModifier::modifyPolystar(RenderPath& in, RenderPath& out, fl
             auto p2 = curr - dNext;
             auto p3 = curr - 2.0f * dNext;
 
-            path.cmds.push(PathCommand::CubicTo);
-            path.pts.push(prev); path.pts.push(p0); path.pts.push(p0);
-            path.cmds.push(PathCommand::CubicTo);
-            path.pts.push(p1); path.pts.push(p2); path.pts.push(p3);
-            path.cmds.push(PathCommand::CubicTo);
-            path.pts.push(p3); path.pts.push(next); path.pts.push(nextCtrl);
+            _cubic(path.cmds, path.pts, prev, p0, p0);
+            _cubic(path.cmds, path.pts, p1, p2, p3);
+            _cubic(path.cmds, path.pts, p3, next, nextCtrl);
         }
     } else {
         path.cmds.grow(2 * in.cmds.count);
@@ -298,10 +294,8 @@ bool LottieRoundnessModifier::modifyPolystar(RenderPath& in, RenderPath& out, fl
             auto p2 = curr - dNext;
             auto p3 = curr - 2.0f * dNext;
 
-            path.cmds.push(PathCommand::LineTo);
-            path.pts.push(p0);
-            path.cmds.push(PathCommand::CubicTo);
-            path.pts.push(p1); path.pts.push(p2); path.pts.push(p3);
+            _cubic(path.cmds, path.pts, path.pts.last(), p0, p0);
+            _cubic(path.cmds, path.pts, p1, p2, p3);
 
             dPrev = -1.0f * dNext;
         }
@@ -374,20 +368,16 @@ bool LottieOffsetModifier::modifyPath(PathCommand* inCmds, uint32_t inCmdsCnt, P
                 }
 
                 bool inside{};
-                Point intersect{};
-                _intersect(line1, line2, intersect, inside);
-                out.pts.push(intersect);
-                _intersect(line2, line3, intersect, inside);
-                out.pts.push(intersect);
-                out.pts.push(line3.pt2);
-                out.cmds.push(PathCommand::CubicTo);
+                Point intersect1{}, intersect2{};
+                _intersect(line1, line2, intersect1, inside);
+                _intersect(line2, line3, intersect2, inside);
+                _cubic(out.cmds, out.pts, intersect1, intersect2, line3.pt2);
             }
 
             iPt += 3;
         }
         else {
             if (!_zero(inPts[iPt - 1], inPts[state.movetoInIndex])) {
-                out.cmds.push(PathCommand::LineTo);
                 corner(out, state.line, state.firstLine, state.movetoOutIndex, true);
             }
             out.cmds.push(PathCommand::Close);
